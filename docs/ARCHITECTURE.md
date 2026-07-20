@@ -145,6 +145,7 @@ sem lógica de negócio).
 - [x] Plano de schema aprovado
 - [x] Scaffold criado
 - [x] Auth + RLS + isolamento validado
-- [ ] Primeira feature implementada
-- [ ] Auditoria de arquitetura rodada
-- [ ] Deploy em produção (módulo de auth em andamento)
+- [x] Módulo 1 (auth + multitenancy) implementado, auditado e em produção — https://vivlar.vercel.app
+- [ ] Módulo 2 (dashboard)
+- [ ] Demais módulos (via `/new-feature`)
+- [ ] Auditoria de arquitetura geral rodada
