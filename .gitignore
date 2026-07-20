@@ -25,3 +25,5 @@ dist-ssr
 # original-project/ é referência local (protótipo fiel do Base44) — fica
 # só na máquina, não vai para o GitHub.
 original-project/
+.vercel
+.env*
