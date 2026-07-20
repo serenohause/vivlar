@@ -22,6 +22,6 @@ dist-ssr
 # Supabase CLI
 .supabase
 
-# original-project/ é referência (protótipo fiel do Base44), rastreada
-# como arquivos normais — só o .git aninhado dela fica de fora.
-original-project/.git
+# original-project/ é referência local (protótipo fiel do Base44) — fica
+# só na máquina, não vai para o GitHub.
+original-project/
