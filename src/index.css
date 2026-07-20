@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "tailwindcss-animate";
 
 @theme {
   --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -32,6 +33,20 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
   --radius: 0.5rem;
+
+  /* Usadas pelo Accordion (Radix) do shell autenticado — mesma animação do
+     original, portada do tailwind.config.js legado para o @theme do v4. */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from { height: 0; }
+    to { height: var(--radix-accordion-content-height); }
+  }
+  @keyframes accordion-up {
+    from { height: var(--radix-accordion-content-height); }
+    to { height: 0; }
+  }
 }
 
 :root[data-theme="dark"],
