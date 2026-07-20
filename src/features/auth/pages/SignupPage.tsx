@@ -49,8 +49,10 @@ export function SignupPage() {
   if (step === 'confirm-email') {
     return (
       <AuthLayout title="Confirme seu e-mail">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <MailCheck className="h-10 w-10 text-brand dark:text-brand-dark" />
+        <div className="flex flex-col items-center gap-5 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+            <MailCheck className="h-5 w-5 text-brand dark:text-brand-dark" />
+          </div>
           <p className="text-sm text-muted-foreground">
             Enviamos um link de confirmação para <strong className="text-foreground">{email}</strong>. Confirme seu
             e-mail e depois faça login para criar sua empresa.

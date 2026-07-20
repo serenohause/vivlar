@@ -15,13 +15,15 @@ export function NoTenantScreen() {
   const { signOut } = useAuth();
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-50 px-4 text-center dark:bg-slate-950">
-      <Building2 className="h-10 w-10 text-muted-foreground" />
+    <div className="flex min-h-screen flex-col items-center justify-center gap-5 bg-background px-4 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+        <Building2 className="h-5 w-5 text-muted-foreground" />
+      </div>
       <div>
         <h2 className="text-lg font-semibold text-foreground">Você ainda não pertence a nenhuma empresa</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Crie sua empresa para começar a usar o Vivlar.</p>
+        <p className="mt-1.5 text-sm text-muted-foreground">Crie sua empresa para começar a usar o Vivlar.</p>
       </div>
-      <Button asChild variant="brand">
+      <Button asChild variant="brand" className="w-full max-w-xs">
         <Link to="/onboarding">Criar minha empresa</Link>
       </Button>
       <Button variant="ghost" size="sm" onClick={() => void signOut()}>

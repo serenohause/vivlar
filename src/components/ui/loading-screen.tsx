@@ -4,8 +4,8 @@
  */
 export function LoadingScreen() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-brand dark:border-slate-700 dark:border-t-brand-dark" />
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-muted border-t-brand dark:border-t-brand-dark" />
     </div>
   );
 }
