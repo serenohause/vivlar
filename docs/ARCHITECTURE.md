@@ -108,9 +108,28 @@ Lista completa (~35 entidades, campos e relacionamentos): `docs/DOMAIN_MAP.md`.
 
 ## Primeira feature (fatia vertical de validação)
 
-A definir com o usuário na etapa de schema/scaffold — candidata natural:
-`projects` + `units` (catálogo base do qual praticamente todo o resto do
-sistema depende), dentro da fundação de auth/multitenancy.
+Construção por módulos, cada um commitado e deployado separadamente na
+Vercel antes de avançar (decisão do usuário, 2026-07-20): 1) auth +
+multitenancy, 2) dashboard, 3) módulos seguintes (CRM, unidades,
+financeiro etc.) via `/new-feature`, um de cada vez.
+
+## Riscos aceitos (não corrigidos, decisão consciente do usuário)
+
+Da auditoria de segurança do módulo de auth (2026-07-20), nenhum achado
+crítico/alto. Dois achados médios foram aceitos como risco por ora:
+
+- **Enumeração de e-mail no signup**: a tela informa explicitamente
+  "este e-mail já está cadastrado" quando o e-mail já existe
+  (`src/features/auth/errors.ts`). Aceito porque o cadastro ainda não é
+  público — revisar antes de abrir signup para fora da equipe.
+- **Sem limite de criação de tenants**: a RPC `create_tenant_with_admin`
+  não limita quantos tenants um mesmo usuário pode criar. Aceito pelo
+  mesmo motivo (signup não é público ainda) — adicionar limite antes de
+  abrir cadastro público.
+
+Achado baixo não corrigido: `EXECUTE` de `set_updated_at()` sobrando para
+`anon`/`PUBLIC` no banco (não explorável na prática, função de trigger
+sem lógica de negócio).
 
 ## Desvios do padrão do CLAUDE.md
 
@@ -125,7 +144,7 @@ sistema depende), dentro da fundação de auth/multitenancy.
 - [x] Domínio definido
 - [x] Plano de schema aprovado
 - [x] Scaffold criado
-- [ ] Auth + RLS + isolamento validado
+- [x] Auth + RLS + isolamento validado
 - [ ] Primeira feature implementada
 - [ ] Auditoria de arquitetura rodada
-- [ ] Deploy em produção
+- [ ] Deploy em produção (módulo de auth em andamento)
