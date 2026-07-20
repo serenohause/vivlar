@@ -13,8 +13,13 @@ cliente e site público de vendas com captura de leads.
 
 ## Como rodar localmente
 
-_Preenchido na etapa 4 (scaffold), com os comandos reais de instalação,
-variáveis de ambiente e `npm run dev`._
+```bash
+npm install
+cp .env.example .env.local   # preencha com as credenciais do seu projeto Supabase
+npm run dev
+```
+
+Outros scripts: `npm run build`, `npm run typecheck`, `npm run lint`, `npm run preview`.
 
 ## Produção
 

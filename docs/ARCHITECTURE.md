@@ -124,7 +124,7 @@ sistema depende), dentro da fundação de auth/multitenancy.
 
 - [x] Domínio definido
 - [x] Plano de schema aprovado
-- [ ] Scaffold criado
+- [x] Scaffold criado
 - [ ] Auth + RLS + isolamento validado
 - [ ] Primeira feature implementada
 - [ ] Auditoria de arquitetura rodada
