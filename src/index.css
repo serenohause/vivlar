@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 
+/* Igual ao `darkMode: ["class"]` do tailwind.config.js do projeto original:
+   dark: só ativa dentro de um ancestral com classe .dark, nunca sozinho
+   pela preferência do sistema operacional. Sem isso, o Tailwind v4 usa
+   prefers-color-scheme por padrão e todo dark:bg-* dispara automaticamente
+   no SO em modo escuro — o app nunca deve escurecer sozinho, só quando
+   (no futuro) houver um alternador de tema explícito. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
 
