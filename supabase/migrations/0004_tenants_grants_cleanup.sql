@@ -1,0 +1,11 @@
+-- 0004_tenants_grants_cleanup.sql
+-- Continuacao da limpeza de grants iniciada em 0003: auditoria pos-0003
+-- mostrou que `authenticated` ainda tinha INSERT/UPDATE em `public.tenants`
+-- (resto do default privilege legado que 0003 nao cobriu explicitamente
+-- para esta tabela -- so revogou delete/truncate/references/trigger).
+-- `tenants` so tem policy de SELECT para `authenticated` (criacao/edicao
+-- de tenant e fluxo server-side com service_role); INSERT/UPDATE ja
+-- estavam de fato bloqueados pela RLS (sem policy = nega), mas o grant de
+-- tabela sobrando viola o principio de menor privilegio e fica registrado
+-- aqui como correcao explicita, nao silenciosa.
+revoke insert, update on public.tenants from authenticated;
