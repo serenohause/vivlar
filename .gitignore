@@ -1,0 +1,27 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Build / deps
+node_modules
+dist
+dist-ssr
+*.local
+
+# Ambiente
+.env
+.env.local
+
+# Editor / SO
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+
+# Supabase CLI
+.supabase
+
+# original-project/ é referência (protótipo fiel do Base44), rastreada
+# como arquivos normais — só o .git aninhado dela fica de fora.
+original-project/.git
