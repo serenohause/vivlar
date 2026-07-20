@@ -1,20 +1,21 @@
 import { Route, Routes } from 'react-router-dom';
 
-function Placeholder() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-brand">Vivlar</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Scaffold pronto — próximo módulo: autenticação.</p>
-      </div>
-    </div>
-  );
-}
+import { AuthenticatedPlaceholder } from '@/features/auth/pages/AuthenticatedPlaceholder';
+import { LoginPage } from '@/features/auth/pages/LoginPage';
+import { OnboardingPage } from '@/features/auth/pages/OnboardingPage';
+import { SignupPage } from '@/features/auth/pages/SignupPage';
+import { ProtectedRoute } from '@/routes/ProtectedRoute';
 
 export function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Placeholder />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
+      <Route path="/onboarding" element={<OnboardingPage />} />
+
+      <Route element={<ProtectedRoute />}>
+        <Route path="/" element={<AuthenticatedPlaceholder />} />
+      </Route>
     </Routes>
   );
 }
