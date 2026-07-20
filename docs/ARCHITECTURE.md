@@ -123,7 +123,7 @@ sistema depende), dentro da fundação de auth/multitenancy.
 ## Status
 
 - [x] Domínio definido
-- [ ] Plano de schema aprovado
+- [x] Plano de schema aprovado
 - [ ] Scaffold criado
 - [ ] Auth + RLS + isolamento validado
 - [ ] Primeira feature implementada
