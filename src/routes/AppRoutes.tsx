@@ -3,6 +3,9 @@ import { Route, Routes } from 'react-router-dom';
 import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { OnboardingPage } from '@/features/auth/pages/OnboardingPage';
 import { SignupPage } from '@/features/auth/pages/SignupPage';
+import { ClientDetailPage } from '@/features/clients/pages/ClientDetailPage';
+import { ClientFormPage } from '@/features/clients/pages/ClientFormPage';
+import { ClientsListPage } from '@/features/clients/pages/ClientsListPage';
 import { getAllNavPageNames } from '@/features/dashboard/navigation';
 import { Dashboard } from '@/features/dashboard/pages/Dashboard';
 import { ProjectDetailPage } from '@/features/projects/pages/ProjectDetailPage';
@@ -26,11 +29,12 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 //
 // Páginas com tela real própria (fora do padrão "em construção" genérico)
 // saem desta lista e ganham `<Route>` explícita abaixo — começou por
-// "Terrains" (Terrenos), depois "Projects" (Projetos) e agora "Units"
-// (Unidades), fechando o módulo de catálogo — todas seguem a mesma
-// convenção de sub-rota: detalhe em "/<slug>/:id", criação em "/<slug>/novo"
-// (edição não tem rota própria — é um dialog, fiel ao original).
-const PAGES_WITH_REAL_ROUTE = ['Terrains', 'Projects', 'Units'];
+// "Terrains" (Terrenos), depois "Projects" (Projetos) e "Units" (Unidades),
+// fechando o módulo de catálogo, e agora "Clients" (Clientes), primeira
+// tela do módulo de CRM/Vendas — todas seguem a mesma convenção de
+// sub-rota: detalhe em "/<slug>/:id", criação em "/<slug>/novo" (edição não
+// tem rota própria — é um dialog, fiel ao original).
+const PAGES_WITH_REAL_ROUTE = ['Terrains', 'Projects', 'Units', 'Clients'];
 const COMING_SOON_PAGE_NAMES = getAllNavPageNames().filter(
   (name) => name !== 'Dashboard' && !PAGES_WITH_REAL_ROUTE.includes(name)
 );
@@ -57,6 +61,10 @@ export function AppRoutes() {
           <Route path={pageUrl('Units')} element={<UnitsListPage />} />
           <Route path={`${pageUrl('Units')}/novo`} element={<UnitFormPage />} />
           <Route path={`${pageUrl('Units')}/:id`} element={<UnitDetailPage />} />
+
+          <Route path={pageUrl('Clients')} element={<ClientsListPage />} />
+          <Route path={`${pageUrl('Clients')}/novo`} element={<ClientFormPage />} />
+          <Route path={`${pageUrl('Clients')}/:id`} element={<ClientDetailPage />} />
 
           {COMING_SOON_PAGE_NAMES.map((pageName) => (
             <Route key={pageName} path={pageUrl(pageName)} element={<ComingSoonPage pageName={pageName} />} />
