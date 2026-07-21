@@ -17,12 +17,12 @@ export const terrainFormSchema = z.object({
   observacoes_legais: z.string().trim().optional(),
   forma_aquisicao: z.string().trim().optional(),
 
-  valor_aquisicao: z.coerce.number().optional(),
-  custos_itbi: z.coerce.number().optional(),
-  custos_cartorio: z.coerce.number().optional(),
-  custos_estudos: z.coerce.number().optional(),
-  custos_corretagem: z.coerce.number().optional(),
-  custos_outros: z.coerce.number().optional(),
+  valor_aquisicao: z.coerce.number().nonnegative().optional(),
+  custos_itbi: z.coerce.number().nonnegative().optional(),
+  custos_cartorio: z.coerce.number().nonnegative().optional(),
+  custos_estudos: z.coerce.number().nonnegative().optional(),
+  custos_corretagem: z.coerce.number().nonnegative().optional(),
+  custos_outros: z.coerce.number().nonnegative().optional(),
 
   notas: z.string().trim().optional(),
 });
