@@ -110,8 +110,26 @@ Lista completa (~35 entidades, campos e relacionamentos): `docs/DOMAIN_MAP.md`.
 
 Construção por módulos, cada um commitado e deployado separadamente na
 Vercel antes de avançar (decisão do usuário, 2026-07-20): 1) auth +
-multitenancy, 2) dashboard, 3) módulos seguintes (CRM, unidades,
-financeiro etc.) via `/new-feature`, um de cada vez.
+multitenancy, 2) dashboard (shell/sidebar), 3) módulos seguintes (CRM,
+unidades, financeiro etc.) via `/new-feature`, um de cada vez.
+
+### Dashboard construído incrementalmente (decisão do usuário, 2026-07-20)
+
+O Dashboard Executivo original (`original-project/src/pages/Dashboard.jsx`)
+junta blocos que dependem de ~8 entidades diferentes (projetos, unidades,
+deals, comissões, financeiro, vistorias, manutenção). Em vez de replicar
+tudo de uma vez com dado nenhum por trás, o módulo de Dashboard entregou
+só o shell (sidebar/navegação, `src/routes/AppShell.tsx`) + uma página
+`src/features/dashboard/pages/Dashboard.tsx` vazia/mínima.
+
+**Regra para todo módulo novo daqui pra frente**: se o módulo tiver um
+bloco correspondente no Dashboard original (KPI, gráfico, seção), o
+`/new-feature` desse módulo também adiciona esse bloco em
+`src/features/dashboard/pages/Dashboard.tsx`, na mesma ordem em que
+aparece no original — não fica para depois, é parte do próprio módulo.
+Exemplos: módulo de Projetos/Unidades adiciona os KPIs de unidades;
+CRM adiciona o funil de vendas; Financeiro adiciona o gráfico de receita;
+Vistorias/Manutenção adicionam a seção "Operacional e Pós-Venda".
 
 ## Riscos aceitos (não corrigidos, decisão consciente do usuário)
 
