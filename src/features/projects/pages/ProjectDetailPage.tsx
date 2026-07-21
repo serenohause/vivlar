@@ -31,8 +31,8 @@ const UNIT_STATUS_LABELS: Record<string, string> = {
  * `contracts`, tabelas que ainda não existem — módulos futuros de CRM/
  * Financeiro; mostrá-los sempre zerados seria enganoso). A lista "Unidades
  * do Projeto" e a "Distribuição por Status" usam `useProjectUnits`
- * (prévia leve, sem link para detalhe de unidade — módulo ainda não tem UI
- * própria).
+ * (prévia leve), com cada SKU e o botão "Ver Todas" linkando para o módulo
+ * de Unidades (`/units/:id` e `/units?project=<id>`, ver `features/units`).
  */
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -221,7 +221,7 @@ export function ProjectDetailPage() {
       <Card className="border-0 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg">Unidades do Projeto</CardTitle>
-          <Link to={pageUrl('Units')}>
+          <Link to={`${pageUrl('Units')}?project=${project.id}`}>
             <Button variant="outline" size="sm">
               Ver Todas
             </Button>
@@ -247,7 +247,11 @@ export function ProjectDetailPage() {
                 <TableBody>
                   {projectUnits.slice(0, 10).map((unit) => (
                     <TableRow key={unit.id}>
-                      <TableCell className="font-medium">{unit.sku}</TableCell>
+                      <TableCell className="font-medium">
+                        <Link to={`${pageUrl('Units')}/${unit.id}`} className="hover:underline">
+                          {unit.sku}
+                        </Link>
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline">{UNIT_STATUS_LABELS[unit.status] ?? unit.status}</Badge>
                       </TableCell>

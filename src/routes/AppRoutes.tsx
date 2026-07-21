@@ -11,6 +11,9 @@ import { ProjectsListPage } from '@/features/projects/pages/ProjectsListPage';
 import { TerrainDetailPage } from '@/features/terrains/pages/TerrainDetailPage';
 import { TerrainFormPage } from '@/features/terrains/pages/TerrainFormPage';
 import { TerrainsListPage } from '@/features/terrains/pages/TerrainsListPage';
+import { UnitDetailPage } from '@/features/units/pages/UnitDetailPage';
+import { UnitFormPage } from '@/features/units/pages/UnitFormPage';
+import { UnitsListPage } from '@/features/units/pages/UnitsListPage';
 import { pageUrl } from '@/lib/page-url';
 import { AppShell } from '@/routes/AppShell';
 import { ComingSoonPage } from '@/routes/ComingSoonPage';
@@ -23,11 +26,11 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 //
 // Páginas com tela real própria (fora do padrão "em construção" genérico)
 // saem desta lista e ganham `<Route>` explícita abaixo — começou por
-// "Terrains" (Terrenos), agora "Projects" (Projetos) segue a mesma
+// "Terrains" (Terrenos), depois "Projects" (Projetos) e agora "Units"
+// (Unidades), fechando o módulo de catálogo — todas seguem a mesma
 // convenção de sub-rota: detalhe em "/<slug>/:id", criação em "/<slug>/novo"
-// (edição não tem rota própria — é um dialog, fiel ao original). Próximo:
-// "Units" (Unidades).
-const PAGES_WITH_REAL_ROUTE = ['Terrains', 'Projects'];
+// (edição não tem rota própria — é um dialog, fiel ao original).
+const PAGES_WITH_REAL_ROUTE = ['Terrains', 'Projects', 'Units'];
 const COMING_SOON_PAGE_NAMES = getAllNavPageNames().filter(
   (name) => name !== 'Dashboard' && !PAGES_WITH_REAL_ROUTE.includes(name)
 );
@@ -50,6 +53,10 @@ export function AppRoutes() {
           <Route path={pageUrl('Projects')} element={<ProjectsListPage />} />
           <Route path={`${pageUrl('Projects')}/novo`} element={<ProjectFormPage />} />
           <Route path={`${pageUrl('Projects')}/:id`} element={<ProjectDetailPage />} />
+
+          <Route path={pageUrl('Units')} element={<UnitsListPage />} />
+          <Route path={`${pageUrl('Units')}/novo`} element={<UnitFormPage />} />
+          <Route path={`${pageUrl('Units')}/:id`} element={<UnitDetailPage />} />
 
           {COMING_SOON_PAGE_NAMES.map((pageName) => (
             <Route key={pageName} path={pageUrl(pageName)} element={<ComingSoonPage pageName={pageName} />} />
