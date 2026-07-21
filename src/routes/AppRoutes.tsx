@@ -3,6 +3,9 @@ import { Route, Routes } from 'react-router-dom';
 import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { OnboardingPage } from '@/features/auth/pages/OnboardingPage';
 import { SignupPage } from '@/features/auth/pages/SignupPage';
+import { BrokerDetailPage } from '@/features/brokers/pages/BrokerDetailPage';
+import { BrokerFormPage } from '@/features/brokers/pages/BrokerFormPage';
+import { BrokersListPage } from '@/features/brokers/pages/BrokersListPage';
 import { ClientDetailPage } from '@/features/clients/pages/ClientDetailPage';
 import { ClientFormPage } from '@/features/clients/pages/ClientFormPage';
 import { ClientsListPage } from '@/features/clients/pages/ClientsListPage';
@@ -11,6 +14,9 @@ import { Dashboard } from '@/features/dashboard/pages/Dashboard';
 import { ProjectDetailPage } from '@/features/projects/pages/ProjectDetailPage';
 import { ProjectFormPage } from '@/features/projects/pages/ProjectFormPage';
 import { ProjectsListPage } from '@/features/projects/pages/ProjectsListPage';
+import { RealEstateAgencyDetailPage } from '@/features/real-estate-agencies/pages/RealEstateAgencyDetailPage';
+import { RealEstateAgencyFormPage } from '@/features/real-estate-agencies/pages/RealEstateAgencyFormPage';
+import { RealEstateAgenciesListPage } from '@/features/real-estate-agencies/pages/RealEstateAgenciesListPage';
 import { TerrainDetailPage } from '@/features/terrains/pages/TerrainDetailPage';
 import { TerrainFormPage } from '@/features/terrains/pages/TerrainFormPage';
 import { TerrainsListPage } from '@/features/terrains/pages/TerrainsListPage';
@@ -30,11 +36,14 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 // Páginas com tela real própria (fora do padrão "em construção" genérico)
 // saem desta lista e ganham `<Route>` explícita abaixo — começou por
 // "Terrains" (Terrenos), depois "Projects" (Projetos) e "Units" (Unidades),
-// fechando o módulo de catálogo, e agora "Clients" (Clientes), primeira
-// tela do módulo de CRM/Vendas — todas seguem a mesma convenção de
-// sub-rota: detalhe em "/<slug>/:id", criação em "/<slug>/novo" (edição não
-// tem rota própria — é um dialog, fiel ao original).
-const PAGES_WITH_REAL_ROUTE = ['Terrains', 'Projects', 'Units', 'Clients'];
+// fechando o módulo de catálogo, depois "Clients" (Clientes), e agora
+// "Brokers" (Corretores) e "RealEstateAgencies" (Imobiliárias), CRM/Vendas
+// — todas seguem a mesma convenção de sub-rota: detalhe em "/<slug>/:id",
+// criação em "/<slug>/novo" (edição não tem rota própria — é um dialog,
+// fiel ao original quando ele existe; "Brokers"/"RealEstateAgencies" não
+// tinham detalhe no original, só lista + dialog — ganharam um aqui para
+// manter a mesma convenção de navegação do resto do app).
+const PAGES_WITH_REAL_ROUTE = ['Terrains', 'Projects', 'Units', 'Clients', 'Brokers', 'RealEstateAgencies'];
 const COMING_SOON_PAGE_NAMES = getAllNavPageNames().filter(
   (name) => name !== 'Dashboard' && !PAGES_WITH_REAL_ROUTE.includes(name)
 );
@@ -65,6 +74,14 @@ export function AppRoutes() {
           <Route path={pageUrl('Clients')} element={<ClientsListPage />} />
           <Route path={`${pageUrl('Clients')}/novo`} element={<ClientFormPage />} />
           <Route path={`${pageUrl('Clients')}/:id`} element={<ClientDetailPage />} />
+
+          <Route path={pageUrl('Brokers')} element={<BrokersListPage />} />
+          <Route path={`${pageUrl('Brokers')}/novo`} element={<BrokerFormPage />} />
+          <Route path={`${pageUrl('Brokers')}/:id`} element={<BrokerDetailPage />} />
+
+          <Route path={pageUrl('RealEstateAgencies')} element={<RealEstateAgenciesListPage />} />
+          <Route path={`${pageUrl('RealEstateAgencies')}/novo`} element={<RealEstateAgencyFormPage />} />
+          <Route path={`${pageUrl('RealEstateAgencies')}/:id`} element={<RealEstateAgencyDetailPage />} />
 
           {COMING_SOON_PAGE_NAMES.map((pageName) => (
             <Route key={pageName} path={pageUrl(pageName)} element={<ComingSoonPage pageName={pageName} />} />
