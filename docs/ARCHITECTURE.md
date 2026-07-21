@@ -163,7 +163,8 @@ sem lógica de negócio).
 - [x] Plano de schema aprovado
 - [x] Scaffold criado
 - [x] Auth + RLS + isolamento validado
-- [x] Módulo 1 (auth + multitenancy) implementado, auditado e em produção — https://vivlar.vercel.app
-- [ ] Módulo 2 (dashboard)
-- [ ] Demais módulos (via `/new-feature`)
+- [x] Módulo 1 (auth + multitenancy) implementado, auditado e em produção
+- [x] Módulo 2 (dashboard: shell/sidebar + página mínima) implementado e em produção
+- [x] Módulo 3 (catálogo: terrenos, projetos, unidades + bloco de KPIs no dashboard) implementado, auditado e em produção — https://vivlar.vercel.app
+- [ ] Demais módulos (CRM, financeiro, comissões, investidores, vistorias/manutenção, documentos) via `/new-feature`
 - [ ] Auditoria de arquitetura geral rodada

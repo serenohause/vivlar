@@ -27,8 +27,9 @@ Outros scripts: `npm run build`, `npm run typecheck`, `npm run lint`, `npm run p
 
 Construção por módulos, cada um deployado separadamente:
 - ✅ Módulo 1 — Auth + multitenancy (login, signup, criação de tenant, RLS)
-- ⏳ Módulo 2 — Dashboard
-- ⏳ Demais módulos via `/new-feature`
+- ✅ Módulo 2 — Dashboard (shell/sidebar fiel ao original + página mínima)
+- ✅ Módulo 3 — Catálogo (terrenos, projetos, unidades) + bloco de KPIs no Dashboard
+- ⏳ Demais módulos (CRM, financeiro, comissões, investidores, vistorias/manutenção, documentos) via `/new-feature`
 
 ---
 
