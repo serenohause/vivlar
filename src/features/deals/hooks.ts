@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/AuthContext';
 import { dealActivitiesQueryKey, dealTransitionsQueryKey } from '@/features/deals/activities-hooks';
 import type { DealMutationPayload } from '@/features/deals/schemas';
-import { UNIT_STATUS_BY_SALES_STAGE } from '@/features/deals/constants';
 import type { Deal, DealSalesStage } from '@/features/deals/types';
 import { invalidateUnitsQueries, updateUnitStatus } from '@/features/units/hooks';
 import { supabase } from '@/lib/supabase';
@@ -118,81 +117,32 @@ interface UpdateDealStageInput {
  *
  * Fiel a `original-project/src/pages/CRM.jsx` (`updateStageMutation`,
  * linhas ~310-423) e `DealDetail.jsx` (`handleStageChange`): reflete
- * `units.status` (via `UNIT_STATUS_BY_SALES_STAGE`), grava
- * `status_transitions` (`transition_type: 'comercial'`) e, ao marcar como
- * vendido, registra uma `activities` — substituindo a `Notification`/
- * criação de `Commission`/convite de usuário cliente que o original fazia
- * neste mesmo ponto (todas fora de escopo desta leva, ver relatório final).
+ * `units.status`, grava `status_transitions` (`transition_type: 'comercial'`)
+ * e, ao marcar como vendido, registra uma `activities` — substituindo a
+ * `Notification`/criação de `Commission`/convite de usuário cliente que o
+ * original fazia neste mesmo ponto (todas fora de escopo desta leva, ver
+ * relatório final).
+ *
+ * Chama a RPC `update_deal_stage` (ver `supabase/migrations/0018_*.sql`)
+ * em vez de 4 chamadas sequenciais ao client — achado de uma auditoria de
+ * segurança: as 4 escritas não eram atômicas (falha no meio deixava
+ * inconsistência visível, ex: deal "vendido" com unidade ainda
+ * "reservada"). A função roda sem `security definer` — cada statement
+ * interno continua sujeito às RLS policies de quem chama.
  */
 export function useUpdateDealStage() {
   const queryClient = useQueryClient();
-  const { tenantId, user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ deal, toStage, note }: UpdateDealStageInput): Promise<Deal> => {
-      if (!tenantId) throw new Error('Tenant não identificado.');
-
-      const fromStage = deal.sales_stage;
-      const isExit = toStage === 'perdido' || toStage === 'distratado';
-      const trimmedNote = note?.trim() || null;
-
-      const updatePayload: Record<string, unknown> = {
-        sales_stage: toStage,
-        is_active: !isExit,
-        updated_by_user_id: user?.id ?? null,
-      };
-      if (toStage === 'vendido') {
-        updatePayload.sold_at = new Date().toISOString();
-      }
-      if (toStage === 'perdido') {
-        updatePayload.lost_reason = trimmedNote;
-      }
-      if (toStage === 'distratado') {
-        updatePayload.distrato_at = new Date().toISOString();
-        updatePayload.distrato_by_user_id = user?.id ?? null;
-        updatePayload.distrato_reason = trimmedNote;
-      }
-
-      const { data: updatedDeal, error: updateError } = await supabase
-        .from('deals')
-        .update(updatePayload)
-        .eq('id', deal.id)
-        .select()
-        .single();
-      if (updateError) throw updateError;
-
-      if (deal.unit_id) {
-        await updateUnitStatus(deal.unit_id, UNIT_STATUS_BY_SALES_STAGE[toStage], user?.id ?? null);
-      }
-
-      const { error: transitionError } = await supabase.from('status_transitions').insert({
-        tenant_id: tenantId,
-        unit_id: deal.unit_id,
-        deal_id: deal.id,
-        from_status: fromStage,
-        to_status: toStage,
-        transition_type: 'comercial',
-        note: trimmedNote,
-        created_by_user_id: user?.id ?? null,
+      const { data, error } = await supabase.rpc('update_deal_stage', {
+        p_deal_id: deal.id,
+        p_to_stage: toStage,
+        p_note: note?.trim() || null,
       });
-      if (transitionError) throw transitionError;
 
-      if (toStage === 'vendido') {
-        const { error: activityError } = await supabase.from('activities').insert({
-          tenant_id: tenantId,
-          title: 'Negócio marcado como vendido',
-          type: 'outro',
-          status: 'concluida',
-          description: trimmedNote,
-          deal_id: deal.id,
-          client_id: deal.client_id,
-          unit_id: deal.unit_id,
-          created_by_user_id: user?.id ?? null,
-        });
-        if (activityError) throw activityError;
-      }
-
-      return updatedDeal;
+      if (error) throw error;
+      return data;
     },
     onSuccess: (updatedDeal) => {
       queryClient.invalidateQueries({ queryKey: DEALS_QUERY_KEY });
