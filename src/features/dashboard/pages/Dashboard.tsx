@@ -1,5 +1,9 @@
+import { Link } from 'react-router-dom';
+
+import { Button } from '@/components/ui/button';
 import { CatalogStats } from '@/features/dashboard/components/CatalogStats';
 import { SalesFunnel } from '@/features/dashboard/components/SalesFunnel';
+import { pageUrl } from '@/lib/page-url';
 
 /**
  * Dashboard Executivo — construído incrementalmente.
@@ -39,6 +43,13 @@ export function Dashboard() {
 
       {/* CRM — funil de vendas */}
       <SalesFunnel />
+
+      {/* Financeiro — mesmo botão "Financeiro Detalhado" de `Dashboard.jsx`, agora que `FinanceDashboardPage` existe */}
+      <div className="flex justify-end">
+        <Link to={pageUrl('FinanceDashboard')}>
+          <Button variant="outline">Financeiro Detalhado</Button>
+        </Link>
+      </div>
 
       <div className="rounded-lg border border-dashed border-border py-16 text-center">
         <p className="text-sm text-muted-foreground">

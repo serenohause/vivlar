@@ -5,9 +5,11 @@ import { formatCurrency } from '@/features/finance/constants';
 import type {
   FinanceAccountMutationPayload,
   InstallmentMutationPayload,
+  RegisterCobrancaMutationPayload,
   RegisterPaymentMutationPayload,
 } from '@/features/finance/schemas';
-import type { FinanceAccount, FinanceEvent, PaymentInstallment } from '@/features/finance/types';
+import type { CobrancaHistorico, FinanceAccount, FinanceEvent, PaymentInstallment } from '@/features/finance/types';
+import { computeInstallmentDisplayStatus } from '@/features/finance/utils';
 import { supabase } from '@/lib/supabase';
 
 const FINANCE_ACCOUNTS_QUERY_KEY = ['finance-accounts'] as const;
@@ -31,6 +33,10 @@ function paymentInstallmentsQueryKey(financeAccountId: string) {
 
 function financeEventsQueryKey(financeAccountId: string) {
   return ['finance-events', financeAccountId] as const;
+}
+
+function cobrancaHistoricoQueryKey(installmentId: string) {
+  return ['cobranca-historico', installmentId] as const;
 }
 
 /**
@@ -112,15 +118,35 @@ export function useFinanceAccountsByUnit(unitId: string | undefined) {
  * (parcelas de uma única carteira, exibidas na tabela de
  * `FinanceAccountDetailPage` mesmo quando canceladas).
  */
+async function fetchAllPaymentInstallments(): Promise<PaymentInstallment[]> {
+  const { data, error } = await supabase.from('payment_installments').select('*').eq('is_deleted', false);
+
+  if (error) throw error;
+  return data;
+}
+
 export function useAllPaymentInstallments() {
   return useQuery({
     queryKey: ALL_PAYMENT_INSTALLMENTS_QUERY_KEY,
-    queryFn: async (): Promise<PaymentInstallment[]> => {
-      const { data, error } = await supabase.from('payment_installments').select('*').eq('is_deleted', false);
+    queryFn: fetchAllPaymentInstallments,
+  });
+}
 
-      if (error) throw error;
-      return data;
-    },
+/**
+ * Parcelas em atraso do tenant inteiro — tabela "Parcelas em Atraso" de
+ * `InadimplenciaManagerPage`. Mesma query/cache de `useAllPaymentInstallments`
+ * (mesma `queryKey`, só um fetch de rede mesmo com os dois hooks montados ao
+ * mesmo tempo — ex: sidebar com badge + tela), filtrada no cliente via
+ * `select` do React Query (memoizado por referência de `data`) porque
+ * `em_atraso` não é um valor persistido em `status` (ver
+ * `computeInstallmentDisplayStatus` em `utils.ts`) — não dá pra filtrar
+ * direto na query do Supabase.
+ */
+export function useOverdueInstallments() {
+  return useQuery({
+    queryKey: ALL_PAYMENT_INSTALLMENTS_QUERY_KEY,
+    queryFn: fetchAllPaymentInstallments,
+    select: (data) => data.filter((i) => computeInstallmentDisplayStatus(i) === 'em_atraso'),
   });
 }
 
@@ -380,5 +406,64 @@ export function useCancelInstallment(financeAccountId: string) {
       return installment;
     },
     onSuccess: () => invalidateFinanceAccountQueries(queryClient, financeAccountId),
+  });
+}
+
+/** Histórico de ações de cobrança de uma parcela — coluna "Última Ação" e diálogo "Registrar Cobrança" de `InadimplenciaManagerPage`, mais recente primeiro. */
+export function useCobrancaHistorico(installmentId: string | undefined) {
+  return useQuery({
+    queryKey: cobrancaHistoricoQueryKey(installmentId ?? ''),
+    queryFn: async (): Promise<CobrancaHistorico[]> => {
+      const { data, error } = await supabase
+        .from('cobranca_historico')
+        .select('*')
+        .eq('installment_id', installmentId as string)
+        .eq('is_deleted', false)
+        .order('data_execucao', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: Boolean(installmentId),
+  });
+}
+
+/**
+ * Registra manualmente uma ação de cobrança sobre uma parcela — tradução de
+ * `registrarAcaoMutation` (`AcoesCobranca`, `InadimplenciaManager.jsx`),
+ * fora de escopo o envio automático/escalonamento (ver `types.ts`).
+ * `data_execucao`/`status` não vêm do formulário: gravados aqui como "agora"
+ * e `'enviado'` — a ação já foi executada pelo usuário (ligou, mandou
+ * WhatsApp/e-mail) antes de logar, mesmo critério do original
+ * (`status: 'ENVIADO'`).
+ */
+export function useRegisterCobranca(installmentId: string) {
+  const queryClient = useQueryClient();
+  const { tenantId, user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (input: RegisterCobrancaMutationPayload): Promise<CobrancaHistorico> => {
+      if (!tenantId) throw new Error('Tenant não identificado.');
+
+      const { data, error } = await supabase
+        .from('cobranca_historico')
+        .insert({
+          ...input,
+          tenant_id: tenantId,
+          installment_id: installmentId,
+          data_execucao: new Date().toISOString(),
+          status: 'enviado',
+          created_by_user_id: user?.id ?? null,
+          updated_by_user_id: user?.id ?? null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: cobrancaHistoricoQueryKey(installmentId) });
+    },
   });
 }

@@ -1,4 +1,4 @@
-import type { FinanceAccountStatus, FinanceEventType, InstallmentStatus, InstallmentType } from '@/features/finance/types';
+import type { CobrancaAcao, FinanceAccountStatus, FinanceEventType, InstallmentStatus, InstallmentType } from '@/features/finance/types';
 
 /**
  * Tradução 1:1 de `STATUS_COLORS` em `original-project/src/pages/Finance.jsx`
@@ -59,6 +59,35 @@ export const FINANCE_EVENT_TYPE_LABELS: Record<FinanceEventType, string> = {
   baixa_pagamento: 'Baixa de Pagamento',
   status_financiamento: 'Status de Financiamento',
 };
+
+/**
+ * Tradução de `acaoLabels` em `original-project/src/pages/InadimplenciaManager.jsx`
+ * (`UltimaAcaoCobranca`), com as chaves trocadas para o enum real
+ * (`cobranca_acao`). `NEGATIVACAO` do original não existe aqui — rótulo
+ * morto, nunca gravado por nenhum fluxo (ver comentário em
+ * `0022_cobranca_historico.sql`).
+ */
+export const COBRANCA_ACAO_LABELS: Record<CobrancaAcao, string> = {
+  lembrete_amigavel: 'Lembrete Amigável',
+  primeira_cobranca: '1ª Cobrança',
+  segunda_cobranca: '2ª Cobrança',
+  cobranca_formal: 'Cobrança Formal',
+  manual: 'Manual',
+};
+
+/**
+ * Opções de canal oferecidas no diálogo "Registrar Cobrança"
+ * (`InadimplenciaManagerPage`). `canal` é texto livre no schema (ver
+ * `CobrancaHistorico` em `types.ts`) — esta lista fixa cobre os canais
+ * manuais confirmados em escopo (ligação/WhatsApp/e-mail/"outro"), sem
+ * travar o campo num enum de banco que não existe.
+ */
+export const COBRANCA_CANAL_OPTIONS = [
+  { value: 'LIGACAO', label: 'Ligação' },
+  { value: 'WHATSAPP', label: 'WhatsApp' },
+  { value: 'EMAIL', label: 'E-mail' },
+  { value: 'OUTRO', label: 'Outro' },
+] as const;
 
 /**
  * Mesma formatação de `financeHelpers.jsx` (`formatCurrency`) — diferente de

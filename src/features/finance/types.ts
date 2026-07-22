@@ -117,3 +117,45 @@ export interface FinanceEvent {
   created_by_user_id: string | null;
   created_at: string;
 }
+
+/**
+ * Tradução 1:1 do enum `cobranca_acao` (ver `supabase/migrations/0022_cobranca_historico.sql`).
+ * Os 4 primeiros valores vêm da régua automática do original
+ * (`dailyEscalonamentoCobranca`/`inadimplenciaAutomation`, fora de escopo
+ * nesta leva — nenhuma mutation deste módulo os grava); `manual` é o único
+ * valor de fato gravado pela tela `InadimplenciaManager`.
+ */
+export type CobrancaAcao = 'lembrete_amigavel' | 'primeira_cobranca' | 'segunda_cobranca' | 'cobranca_formal' | 'manual';
+
+/** Tradução 1:1 do enum `cobranca_status`. Toda ação registrada manualmente nasce `enviado` (já foi executada pelo usuário fora do sistema antes de logar aqui) — `aguardando` só existiria numa régua automática, fora de escopo. */
+export type CobrancaStatus = 'aguardando' | 'enviado';
+
+/**
+ * Tradução 1:1 das colunas de `cobranca_historico` — registro manual de uma
+ * ação de cobrança sobre uma parcela em atraso. `canal` é texto livre no
+ * schema (não enum), fiel ao original (`'EMAIL'`, `'WHATSAPP'`, `'LIGACAO'`,
+ * `'MANUAL'`, e até concatenações como `"EMAIL,WHATSAPP"` na régua
+ * automática) — ver `COBRANCA_CANAL_OPTIONS` em `constants.ts` para as
+ * opções oferecidas nesta tela.
+ */
+export interface CobrancaHistorico {
+  id: string;
+  tenant_id: string;
+
+  installment_id: string;
+
+  acao: CobrancaAcao;
+  canal: string | null;
+  data_execucao: string;
+  status: CobrancaStatus;
+  observacoes: string | null;
+
+  is_deleted: boolean;
+  deleted_at: string | null;
+  deleted_by_user_id: string | null;
+
+  created_by_user_id: string | null;
+  updated_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+}

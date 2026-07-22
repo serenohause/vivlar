@@ -14,7 +14,9 @@ import { Dashboard } from '@/features/dashboard/pages/Dashboard';
 import { CRMPage } from '@/features/deals/pages/CRMPage';
 import { DealDetailPage } from '@/features/deals/pages/DealDetailPage';
 import { FinanceAccountDetailPage } from '@/features/finance/pages/FinanceAccountDetailPage';
+import { FinanceDashboardPage } from '@/features/finance/pages/FinanceDashboardPage';
 import { FinanceListPage } from '@/features/finance/pages/FinanceListPage';
+import { InadimplenciaManagerPage } from '@/features/finance/pages/InadimplenciaManagerPage';
 import { ProjectDetailPage } from '@/features/projects/pages/ProjectDetailPage';
 import { ProjectFormPage } from '@/features/projects/pages/ProjectFormPage';
 import { ProjectsListPage } from '@/features/projects/pages/ProjectsListPage';
@@ -54,8 +56,24 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 // próprio Kanban (fiel ao original), e uma carteira financeira nasce a
 // partir de uma unidade vendida, não de uma tela de criação isolada (ver
 // `CreateFinanceAccountDialog`, acionado a partir de `UnitDetailPage`) — só
-// "/finance" (lista) e "/finance/:id" (detalhe da carteira).
-const PAGES_WITH_REAL_ROUTE = ['Terrains', 'Projects', 'Units', 'Clients', 'Brokers', 'RealEstateAgencies', 'CRM', 'Finance'];
+// "/finance" (lista) e "/finance/:id" (detalhe da carteira). Fechando o
+// módulo Financeiro: "FinanceDashboard" (análises/tendências — sem sub-rota,
+// sem link na sidebar no original também, só um botão "Financeiro
+// Detalhado" a partir do Dashboard Executivo, ver `features/dashboard/pages/Dashboard.tsx`)
+// e "InadimplenciaManager" (já tinha item na sidebar, ver
+// `features/dashboard/navigation.ts`, mas caía em "em construção" até agora).
+const PAGES_WITH_REAL_ROUTE = [
+  'Terrains',
+  'Projects',
+  'Units',
+  'Clients',
+  'Brokers',
+  'RealEstateAgencies',
+  'CRM',
+  'Finance',
+  'FinanceDashboard',
+  'InadimplenciaManager',
+];
 const COMING_SOON_PAGE_NAMES = getAllNavPageNames().filter(
   (name) => name !== 'Dashboard' && !PAGES_WITH_REAL_ROUTE.includes(name)
 );
@@ -100,6 +118,8 @@ export function AppRoutes() {
 
           <Route path={pageUrl('Finance')} element={<FinanceListPage />} />
           <Route path={`${pageUrl('Finance')}/:id`} element={<FinanceAccountDetailPage />} />
+          <Route path={pageUrl('FinanceDashboard')} element={<FinanceDashboardPage />} />
+          <Route path={pageUrl('InadimplenciaManager')} element={<InadimplenciaManagerPage />} />
 
           {COMING_SOON_PAGE_NAMES.map((pageName) => (
             <Route key={pageName} path={pageUrl(pageName)} element={<ComingSoonPage pageName={pageName} />} />

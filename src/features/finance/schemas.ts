@@ -75,3 +75,27 @@ export type RegisterPaymentMutationPayload = {
   metodo_pagamento: string | null;
   comprovante_url: string | null;
 };
+
+// Diálogo "Registrar Cobrança" de `InadimplenciaManagerPage` — tradução do
+// dialog "Registrar Ação de Cobrança" de `AcoesCobranca`
+// (`InadimplenciaManager.jsx`), que só pedia `observacoes` (ação/canal
+// ficavam implícitos: sempre `'MANUAL'`/`'MANUAL'`). Aqui `acao`/`canal`
+// viram campos explícitos do formulário — o schema real tem 5 valores de
+// `acao` e `canal` é texto livre (ver `types.ts`), então vale deixar o
+// usuário escolher em vez de hardcodar `'manual'`/`'MANUAL'` sempre.
+// `data_execucao`/`status` não são deste formulário: gravados pela mutation
+// (`useRegisterCobranca`) como "agora"/`'enviado'`, fiel ao original
+// (`data_execucao: new Date().toISOString(), status: 'ENVIADO'`).
+export const registerCobrancaFormSchema = z.object({
+  acao: z.enum(['lembrete_amigavel', 'primeira_cobranca', 'segunda_cobranca', 'cobranca_formal', 'manual']),
+  canal: z.string().trim().min(1, 'Selecione o canal.'),
+  observacoes: z.string().trim().optional(),
+});
+
+export type RegisterCobrancaFormInput = z.infer<typeof registerCobrancaFormSchema>;
+
+export type RegisterCobrancaMutationPayload = {
+  acao: RegisterCobrancaFormInput['acao'];
+  canal: string;
+  observacoes: string | null;
+};
