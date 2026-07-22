@@ -223,10 +223,22 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   renderiza — mesmo código morto já visto em `DashboardStats`/
   `DashboardCharts` — então não há nada real para replicar aqui.
 
+## Achados de segurança corrigidos (não aceitos como risco)
+
+- **Módulo 6 — Comissões** (auditoria de 2026-07-21): achado **alto**
+  de atomicidade em `useCreateAdjustment`/`useCreatePayment`/
+  `useUpdatePayment`/`useSoftDeletePayment` (2 escritas sequenciais sem
+  transação, sendo a segunda o próprio valor pago ao corretor —
+  diferente do financeiro, onde a segunda escrita era só um log).
+  Corrigido movendo as 4 mutations para RPCs transacionais
+  (`supabase/migrations/0029_commission_transactional_rpcs.sql`), mesmo
+  padrão de `update_deal_stage` (módulo 4).
+
 ## Riscos aceitos (não corrigidos, decisão consciente do usuário)
 
-Nenhum achado crítico/alto em nenhuma auditoria de segurança até agora.
-Achados médios/baixos aceitos como risco por ora, por módulo:
+Achados médios/baixos aceitos como risco por ora, por módulo (achados
+críticos/altos são sempre corrigidos antes do deploy, não aceitos —
+ver seção acima para o único caso alto até agora):
 
 **Módulo 1 — Auth** (auditoria de 2026-07-20)
 - **Enumeração de e-mail no signup**: a tela informa explicitamente
@@ -277,6 +289,7 @@ Achados médios/baixos aceitos como risco por ora, por módulo:
 - [x] Módulo 2 (dashboard: shell/sidebar + página mínima) implementado e em produção
 - [x] Módulo 3 (catálogo: terrenos, projetos, unidades + bloco de KPIs no dashboard) implementado, auditado e em produção
 - [x] Módulo 4 (CRM: clientes, corretores, imobiliárias, kanban de negócios + bloco de funil no dashboard) implementado, auditado e em produção
-- [x] Módulo 5 (Financeiro: contas a receber, dashboard financeiro, inadimplência + bloco de KPIs executivos no dashboard) implementado — https://vivlar.vercel.app
-- [ ] Demais módulos (comissões, investidores, vistorias/manutenção, documentos) via `/new-feature`
+- [x] Módulo 5 (Financeiro: contas a receber, dashboard financeiro, inadimplência + bloco de KPIs executivos no dashboard) implementado, auditado e em produção
+- [x] Módulo 6 (Comissões: lista + detalhe com ajustes/pagamentos, criação automática ao vender fechando loop do CRM) implementado, auditado e em produção — https://vivlar.vercel.app
+- [ ] Demais módulos (investidores, vistorias/manutenção, documentos) via `/new-feature`
 - [ ] Auditoria de arquitetura geral rodada
