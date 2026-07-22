@@ -208,9 +208,10 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
 
 ## Riscos aceitos (não corrigidos, decisão consciente do usuário)
 
-Da auditoria de segurança do módulo de auth (2026-07-20), nenhum achado
-crítico/alto. Dois achados médios foram aceitos como risco por ora:
+Nenhum achado crítico/alto em nenhuma auditoria de segurança até agora.
+Achados médios/baixos aceitos como risco por ora, por módulo:
 
+**Módulo 1 — Auth** (auditoria de 2026-07-20)
 - **Enumeração de e-mail no signup**: a tela informa explicitamente
   "este e-mail já está cadastrado" quando o e-mail já existe
   (`src/features/auth/errors.ts`). Aceito porque o cadastro ainda não é
@@ -219,10 +220,27 @@ crítico/alto. Dois achados médios foram aceitos como risco por ora:
   não limita quantos tenants um mesmo usuário pode criar. Aceito pelo
   mesmo motivo (signup não é público ainda) — adicionar limite antes de
   abrir cadastro público.
+- Baixo: `EXECUTE` de `set_updated_at()` sobrando para `anon`/`PUBLIC`
+  no banco (não explorável na prática, função de trigger sem lógica de
+  negócio).
 
-Achado baixo não corrigido: `EXECUTE` de `set_updated_at()` sobrando para
-`anon`/`PUBLIC` no banco (não explorável na prática, função de trigger
-sem lógica de negócio).
+**Módulo 5 — Financeiro** (auditoria de 2026-07-21)
+- **Sem transação em `useCreateInstallment`/`useUpdateInstallment`/
+  `useRegisterPayment`/`useCancelInstallment`**: cada uma faz 2 escritas
+  sequenciais (a parcela + o log em `finance_events`) sem RPC
+  transacional — diferente do padrão adotado em `update_deal_stage`
+  (módulo 4), aqui aceito conscientemente porque uma falha no meio só
+  afeta o log de auditoria (`finance_events` não alimenta nenhum
+  total/KPI), não corrompe valor financeiro nem quebra regra de
+  negócio. Pior caso prático: usuário tenta de novo após erro e duplica
+  uma parcela (sem idempotência). Revisitar se aparecer na prática.
+- Baixo: `valor_pago` em `useRegisterPayment` não é validado contra
+  `valor_previsto` da parcela (lacuna de regra de negócio, não de
+  autorização).
+- Baixo: `useUpdateInstallment`/`useRegisterPayment`/`useCancelInstallment`
+  filtram só por `id` da parcela, sem redundância por
+  `finance_account_id` (não explorável via UI normal, RLS já isola por
+  tenant).
 
 ## Desvios do padrão do CLAUDE.md
 
