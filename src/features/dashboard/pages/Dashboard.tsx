@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 import { CatalogStats } from '@/features/dashboard/components/CatalogStats';
+import { ExecutiveKpis } from '@/features/dashboard/components/ExecutiveKpis';
 import { SalesFunnel } from '@/features/dashboard/components/SalesFunnel';
 import { pageUrl } from '@/lib/page-url';
 
@@ -38,11 +39,11 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Catálogo (Projetos/Unidades) + CRM (Clientes/Deals) — módulos de dados já ativos */}
-      <CatalogStats />
+      {/* KPIs executivos (Receita do Mês, Deals Ativos, Ticket Médio) — mesma linha de KPICard do Dashboard.jsx original */}
+      <ExecutiveKpis />
 
-      {/* CRM — funil de vendas */}
-      <SalesFunnel />
+      {/* Catálogo (Projetos/Unidades) + CRM (Clientes) — complemento fiel a DashboardStats.jsx (dead code no original, revivido aqui com dado real) */}
+      <CatalogStats />
 
       {/* Financeiro — mesmo botão "Financeiro Detalhado" de `Dashboard.jsx`, agora que `FinanceDashboardPage` existe */}
       <div className="flex justify-end">
@@ -50,6 +51,9 @@ export function Dashboard() {
           <Button variant="outline">Financeiro Detalhado</Button>
         </Link>
       </div>
+
+      {/* CRM — funil de vendas (linha de gráficos do original também tinha o gráfico de receita, não portado — Math.random fake, ver SalesFunnel.tsx) */}
+      <SalesFunnel />
 
       <div className="rounded-lg border border-dashed border-border py-16 text-center">
         <p className="text-sm text-muted-foreground">
