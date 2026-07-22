@@ -186,6 +186,26 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
 - `deal_brokers` (co-corretagem) e `unit_checks` não foram criados —
   nenhuma tela do original de fato os usa hoje.
 
+**Módulo 5 — Financeiro (Contas a Receber, Dashboard Financeiro, Inadimplência)**
+- Sem `FinancingProcess` (processo de financiamento bancário) — schema
+  incerto no original (só leitura em `src`, sem `.create()`).
+- `finance_accounts` sem `contract_id` — `contracts` não existe ainda
+  (módulo futuro de Documentos/Contratos).
+- Sem `DistratoCheckup`/`FinanceCheckup` — ferramentas de auditoria/
+  revisão de dados do original, não telas de operação do dia a dia.
+- `cobranca_historico` só registra ações manuais (ligação/WhatsApp/
+  e-mail/outro) que o usuário loga na hora — sem escalonamento
+  automático por cron (`dailyEscalonamentoCobranca`/
+  `inadimplenciaAutomation` do original) e sem envio real de e-mail/
+  WhatsApp pelo sistema (os atalhos abrem `mailto:`/`wa.me` do
+  navegador, não enviam nada pelo backend).
+- Criação de `finance_account` não tem tela própria — nasce a partir de
+  `UnitDetailPage` ("Criar Carteira Financeira"), diferente do original,
+  que criava silenciosamente na primeira parcela adicionada.
+- `metodo_pagamento` e `canal` de cobrança são texto livre no banco
+  (não enum), diferente do original — normalizados na apresentação
+  (gráfico de formas de pagamento) em vez de restringidos na entrada.
+
 ## Riscos aceitos (não corrigidos, decisão consciente do usuário)
 
 Da auditoria de segurança do módulo de auth (2026-07-20), nenhum achado
@@ -221,6 +241,7 @@ sem lógica de negócio).
 - [x] Módulo 1 (auth + multitenancy) implementado, auditado e em produção
 - [x] Módulo 2 (dashboard: shell/sidebar + página mínima) implementado e em produção
 - [x] Módulo 3 (catálogo: terrenos, projetos, unidades + bloco de KPIs no dashboard) implementado, auditado e em produção
-- [x] Módulo 4 (CRM: clientes, corretores, imobiliárias, kanban de negócios + bloco de funil no dashboard) implementado, auditado e em produção — https://vivlar.vercel.app
-- [ ] Demais módulos (financeiro, comissões, investidores, vistorias/manutenção, documentos) via `/new-feature`
+- [x] Módulo 4 (CRM: clientes, corretores, imobiliárias, kanban de negócios + bloco de funil no dashboard) implementado, auditado e em produção
+- [x] Módulo 5 (Financeiro: contas a receber, dashboard financeiro, inadimplência + bloco de KPIs executivos no dashboard) implementado — https://vivlar.vercel.app
+- [ ] Demais módulos (comissões, investidores, vistorias/manutenção, documentos) via `/new-feature`
 - [ ] Auditoria de arquitetura geral rodada
