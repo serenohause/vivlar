@@ -158,11 +158,11 @@ export function useClientsDealsSummary() {
 }
 
 /**
- * Negociações de um cliente específico (prévia simples, sem link para
- * detalhe de negócio — módulo ainda não tem UI própria), usada só pela
- * seção "Negociações" de `ClientDetailPage`. Mesmo filtro do original
- * (`ClientDetail.jsx`): exclui negócios soft-deleted, perdidos e
- * distratados.
+ * Negociações de um cliente específico, usada só pela seção "Negociações"
+ * de `ClientDetailPage` — inclui `broker_id` para exibir o nome do corretor
+ * e permitir o link para o detalhe do negócio (`/crm/:id`, agora que
+ * `features/deals` existe). Mesmo filtro do original (`ClientDetail.jsx`):
+ * exclui negócios soft-deleted, perdidos e distratados.
  */
 export function useClientDeals(clientId: string | undefined) {
   return useQuery({
@@ -170,7 +170,7 @@ export function useClientDeals(clientId: string | undefined) {
     queryFn: async (): Promise<ClientDealPreview[]> => {
       const { data, error } = await supabase
         .from('deals')
-        .select('id, project_id, unit_id, sales_stage, expected_sale_value, sold_at, commission_value')
+        .select('id, project_id, unit_id, broker_id, sales_stage, expected_sale_value, sold_at, commission_value')
         .eq('client_id', clientId as string)
         .eq('is_deleted', false)
         .not('sales_stage', 'in', '(perdido,distratado)')

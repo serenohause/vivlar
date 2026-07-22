@@ -19,7 +19,13 @@ function unitQueryKey(id: string) {
   return ['unit', id] as const;
 }
 
-function invalidateUnitsQueries(queryClient: ReturnType<typeof useQueryClient>, id?: string) {
+/**
+ * Exportada (em vez de ficar privada deste módulo) para `features/deals/hooks.ts`
+ * poder invalidar `units`/derivados depois de refletir `units.status` como
+ * parte da mesma operação de mudança de estágio de um negócio — sem
+ * duplicar as chaves de query aqui.
+ */
+export function invalidateUnitsQueries(queryClient: ReturnType<typeof useQueryClient>, id?: string) {
   queryClient.invalidateQueries({ queryKey: UNITS_QUERY_KEY });
   queryClient.invalidateQueries({ queryKey: UNITS_STATS_QUERY_KEY });
   queryClient.invalidateQueries({ queryKey: PROJECT_UNITS_QUERY_KEY });
@@ -115,23 +121,34 @@ export function useUpdateUnit(id: string) {
   });
 }
 
+/**
+ * Update direto de `units.status` (função simples, sem `useMutation`) —
+ * extraída de `useUpdateUnitStatus` para ser reaproveitada por
+ * `features/deals/hooks.ts` (`useUpdateDealStage`), que precisa refletir o
+ * status da unidade como parte da mesma operação de mudança de estágio do
+ * negócio, sem duplicar esta query (mesmo padrão fiel a
+ * `original-project/src/pages/CRM.jsx`, que também faz `Unit.update` dentro
+ * da mutation de mudança de estágio do deal).
+ */
+export async function updateUnitStatus(id: string, status: UnitStatus, updatedByUserId: string | null): Promise<Unit> {
+  const { data, error } = await supabase
+    .from('units')
+    .update({ status, updated_by_user_id: updatedByUserId })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 /** Atualiza só o status comercial (disponível/reservada/vendida/bloqueada) — ação rápida a partir da lista ou do detalhe. */
 export function useUpdateUnitStatus(id: string) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (status: UnitStatus): Promise<Unit> => {
-      const { data, error } = await supabase
-        .from('units')
-        .update({ status, updated_by_user_id: user?.id ?? null })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
+    mutationFn: (status: UnitStatus) => updateUnitStatus(id, status, user?.id ?? null),
     onSuccess: () => invalidateUnitsQueries(queryClient, id),
   });
 }

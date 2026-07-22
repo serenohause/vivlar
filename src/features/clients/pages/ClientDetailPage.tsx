@@ -1,17 +1,18 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Briefcase, Building2, Calendar, DollarSign, Edit2, Home, Mail, MapPin, Phone } from 'lucide-react';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import { ArrowLeft, Briefcase, Building2, Calendar, DollarSign, Edit2, Home, Mail, MapPin, Phone, Users } from 'lucide-react';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
 import { LoadingInline } from '@/components/ui/loading-inline';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { ClientEditDialog } from '@/features/clients/components/ClientEditDialog';
-import { DEAL_SALES_STAGE_LABELS, formatCPF, formatCurrency } from '@/features/clients/constants';
+import { formatCPF, formatCurrency } from '@/features/clients/constants';
 import { useClient, useClientDeals } from '@/features/clients/hooks';
+import { useBrokers } from '@/features/brokers/hooks';
+import { DealStageBadge } from '@/features/deals/components/DealStageBadge';
 import { useProjects } from '@/features/projects/hooks';
 import { useUnits } from '@/features/units/hooks';
 import { pageUrl } from '@/lib/page-url';
@@ -28,11 +29,11 @@ function getInitials(name: string | undefined | null): string {
 
 /**
  * Tradução de `original-project/src/pages/ClientDetail.jsx`. A seção
- * "Negociações" reaproveita `useProjects`/`useUnits` (já existem) só para
- * resolver nome do projeto e SKU da unidade — sem corretor (o campo
- * `broker_id` do original não é exibido: o módulo de Corretores ainda não
- * tem hook/UI própria, é uma tarefa separada) e sem link para uma tela de
- * detalhe de negócio (Kanban do CRM, também tarefa separada).
+ * "Negociações" reaproveita `useProjects`/`useUnits`/`useBrokers` (já
+ * existem) para resolver nome do projeto, SKU da unidade e nome do
+ * corretor, e agora linka cada negociação para `DealDetailPage` (`/crm/:id`,
+ * módulo `features/deals` criado nesta leva) — os dois "sem" do comentário
+ * anterior (corretor, link de detalhe) já foram resolvidos.
  */
 export function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -41,6 +42,7 @@ export function ClientDetailPage() {
   const { data: deals } = useClientDeals(id);
   const { data: projects } = useProjects();
   const { data: units } = useUnits();
+  const { data: brokers } = useBrokers();
 
   const [showEditDialog, setShowEditDialog] = useState(false);
 
@@ -72,6 +74,10 @@ export function ClientDetailPage() {
 
   function getUnitCode(unitId: string): string {
     return units?.find((u) => u.id === unitId)?.sku || '—';
+  }
+
+  function getBrokerName(brokerId: string): string {
+    return brokers?.find((b) => b.id === brokerId)?.name || '—';
   }
 
   return (
@@ -175,11 +181,17 @@ export function ClientDetailPage() {
                           </div>
                         )}
                       </div>
-                      <Badge variant="outline">{DEAL_SALES_STAGE_LABELS[deal.sales_stage]}</Badge>
+                      <DealStageBadge stage={deal.sales_stage} />
                     </div>
 
                     <div className="space-y-2">
                       <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                        {deal.broker_id && (
+                          <div className="flex items-center gap-1">
+                            <Users className="h-4 w-4" />
+                            {getBrokerName(deal.broker_id)}
+                          </div>
+                        )}
                         {deal.expected_sale_value != null && (
                           <div className="flex items-center gap-1">
                             <DollarSign className="h-4 w-4" />
@@ -198,6 +210,14 @@ export function ClientDetailPage() {
                           Comissão: {formatCurrency(deal.commission_value)}
                         </p>
                       )}
+                    </div>
+
+                    <div className="mt-3 border-t pt-3">
+                      <Link to={`${pageUrl('CRM')}/${deal.id}`}>
+                        <Button variant="ghost" size="sm" className="text-brand">
+                          Ver Detalhes →
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 ))}
