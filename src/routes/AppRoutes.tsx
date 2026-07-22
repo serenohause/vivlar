@@ -9,6 +9,8 @@ import { BrokersListPage } from '@/features/brokers/pages/BrokersListPage';
 import { ClientDetailPage } from '@/features/clients/pages/ClientDetailPage';
 import { ClientFormPage } from '@/features/clients/pages/ClientFormPage';
 import { ClientsListPage } from '@/features/clients/pages/ClientsListPage';
+import { CommissionDetailPage } from '@/features/commissions/pages/CommissionDetailPage';
+import { CommissionsListPage } from '@/features/commissions/pages/CommissionsListPage';
 import { getAllNavPageNames } from '@/features/dashboard/navigation';
 import { Dashboard } from '@/features/dashboard/pages/Dashboard';
 import { CRMPage } from '@/features/deals/pages/CRMPage';
@@ -61,7 +63,16 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 // sem link na sidebar no original também, só um botão "Financeiro
 // Detalhado" a partir do Dashboard Executivo, ver `features/dashboard/pages/Dashboard.tsx`)
 // e "InadimplenciaManager" (já tinha item na sidebar, ver
-// `features/dashboard/navigation.ts`, mas caía em "em construção" até agora).
+// `features/dashboard/navigation.ts`, mas caía em "em construção" até agora),
+// e agora "Commissions" (Comissões: lista + detalhe de pagamento de
+// comissão a corretor). Mesma convenção de sub-rota do resto do app
+// ("/commissions/:id" para detalhe), sem "/commissions/novo": a `Commission`
+// nasce automaticamente dentro da RPC `update_deal_stage` quando um negócio
+// vira "vendido" (ver `supabase/migrations/0028_update_deal_stage_commission.sql`)
+// — não existe `Commission.create(...)` em lugar nenhum do original
+// (`src/pages/Commissions.jsx`/`CommissionDetail.jsx`), só edição
+// (ajuste/pagamento/agendamento/cancelamento/finalização) da comissão já
+// existente.
 const PAGES_WITH_REAL_ROUTE = [
   'Terrains',
   'Projects',
@@ -73,6 +84,7 @@ const PAGES_WITH_REAL_ROUTE = [
   'Finance',
   'FinanceDashboard',
   'InadimplenciaManager',
+  'Commissions',
 ];
 const COMING_SOON_PAGE_NAMES = getAllNavPageNames().filter(
   (name) => name !== 'Dashboard' && !PAGES_WITH_REAL_ROUTE.includes(name)
@@ -120,6 +132,9 @@ export function AppRoutes() {
           <Route path={`${pageUrl('Finance')}/:id`} element={<FinanceAccountDetailPage />} />
           <Route path={pageUrl('FinanceDashboard')} element={<FinanceDashboardPage />} />
           <Route path={pageUrl('InadimplenciaManager')} element={<InadimplenciaManagerPage />} />
+
+          <Route path={pageUrl('Commissions')} element={<CommissionsListPage />} />
+          <Route path={`${pageUrl('Commissions')}/:id`} element={<CommissionDetailPage />} />
 
           {COMING_SOON_PAGE_NAMES.map((pageName) => (
             <Route key={pageName} path={pageUrl(pageName)} element={<ComingSoonPage pageName={pageName} />} />
