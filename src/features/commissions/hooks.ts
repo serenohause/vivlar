@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/AuthContext';
-import { COMMISSION_ADJUSTMENT_CONFIG, formatCurrency } from '@/features/commissions/constants';
 import type {
   CommissionAdjustmentMutationPayload,
   CommissionPaymentMutationPayload,
@@ -72,13 +71,6 @@ export function useCommission(id: string | undefined) {
   });
 }
 
-/** Busca a linha fresca da comissão direto do banco (fora do cache do React Query) — usado pelos hooks de mutation abaixo para recalcular `gross_value`/`saldo`/`total_pago` a partir do estado mais recente possível, em vez de um valor potencialmente obsoleto vindo de props/closure da tela. */
-async function fetchCommissionRow(commissionId: string): Promise<Commission> {
-  const { data, error } = await supabase.from('commissions').select('*').eq('id', commissionId).single();
-  if (error) throw error;
-  return data;
-}
-
 /** Ajustes (desconto/acréscimo/bônus) de uma comissão — card "Ajustes" de `CommissionDetailPage`, mais recente primeiro. Log write-once (sem policy de UPDATE, ver 0027_rls_comissoes.sql). */
 export function useCommissionAdjustments(commissionId: string | undefined) {
   return useQuery({
@@ -132,57 +124,31 @@ export function useAllCommissionPayments() {
 /**
  * Adiciona um ajuste (desconto/acréscimo/bônus) e recalcula
  * `commissions.gross_value`/`saldo` — tradução de `addAdjustmentMutation`
- * (`CommissionDetail.jsx`). Diferente do original (que recalcula a partir
- * dos arrays de ajustes/pagamentos já carregados na tela), este hook busca
- * a linha fresca de `commissions` no banco antes de calcular (`gross_value
- * ?? base_value` como "total atual", `total_pago` já persistido) — mesmo
- * resultado quando os dois lados estão em sincronia (sempre estão, cada
- * mutation deste módulo grava os 3 campos), mas reduz a janela de
- * obsolescência. Ainda não é atômico (2 escritas sequenciais, sem RPC) —
- * mesma limitação já aceita em `finance_accounts`/`payment_installments`.
- * Bloqueia se `is_finalizada` (a comissão está travada).
+ * (`CommissionDetail.jsx`). Chama a RPC `create_commission_adjustment`
+ * (ver `supabase/migrations/0029_*.sql`) em vez de 2 escritas sequenciais:
+ * achado ALTO de uma auditoria de segurança — diferente do caso já aceito
+ * em `finance_accounts` (onde a segunda escrita era só um log de
+ * auditoria), aqui a segunda escrita é o valor financeiro pago ao
+ * corretor; uma falha no meio podia deixar `saldo` desatualizado e abrir
+ * caminho para pagamento a maior. A função roda sem `security definer` —
+ * cada statement interno continua sujeito à RLS de quem chama.
  */
 export function useCreateAdjustment(commissionId: string) {
   const queryClient = useQueryClient();
-  const { tenantId, user } = useAuth();
 
   return useMutation({
     mutationFn: async (input: CommissionAdjustmentMutationPayload): Promise<CommissionAdjustment> => {
-      if (!tenantId) throw new Error('Tenant não identificado.');
+      const { data, error } = await supabase.rpc('create_commission_adjustment', {
+        p_commission_id: commissionId,
+        p_type: input.type,
+        p_amount: input.amount,
+        p_reason: input.reason,
+        p_attachment_url: input.attachment_url ?? null,
+        p_attachment_name: input.attachment_name ?? null,
+      });
 
-      const commission = await fetchCommissionRow(commissionId);
-      if (commission.is_finalizada) {
-        throw new Error('Esta comissão está finalizada e não aceita novos ajustes.');
-      }
-
-      const { data: adjustment, error: adjustmentError } = await supabase
-        .from('commission_adjustments')
-        .insert({
-          ...input,
-          tenant_id: tenantId,
-          commission_id: commissionId,
-          attachment_uploaded_at: input.attachment_url ? new Date().toISOString() : null,
-          attachment_uploaded_by_user_id: input.attachment_url ? (user?.id ?? null) : null,
-          created_by_user_id: user?.id ?? null,
-        })
-        .select()
-        .single();
-
-      if (adjustmentError) throw adjustmentError;
-
-      const signedAmount = input.amount * COMMISSION_ADJUSTMENT_CONFIG[input.type].sign;
-      const currentTotal = commission.gross_value ?? commission.base_value;
-      const newTotal = currentTotal + signedAmount;
-      const newSaldo = newTotal - commission.total_pago;
-
-      const { error: commissionError } = await supabase
-        .from('commissions')
-        .update({ gross_value: newTotal, saldo: newSaldo, updated_by_user_id: user?.id ?? null })
-        .eq('id', commissionId);
-
-      if (commissionError) throw commissionError;
-
-      return adjustment;
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => invalidateCommissionQueries(queryClient, commissionId),
   });
@@ -190,60 +156,27 @@ export function useCreateAdjustment(commissionId: string) {
 
 /**
  * Registra um pagamento e recalcula `commissions.total_pago`/`saldo`/
- * `status` (`pago` se o saldo zerar, mantém o status atual caso contrário)
- * — tradução de `registerPaymentMutation`. Valida que o valor não excede o
- * saldo disponível (tolerância de 1 centavo, fiel ao original) e que a
- * comissão não está finalizada.
+ * `status` — tradução de `registerPaymentMutation`. Chama a RPC
+ * `register_commission_payment` (ver `supabase/migrations/0029_*.sql`),
+ * mesmo motivo de `useCreateAdjustment` acima.
  */
 export function useCreatePayment(commissionId: string) {
   const queryClient = useQueryClient();
-  const { tenantId, user } = useAuth();
 
   return useMutation({
     mutationFn: async (input: CommissionPaymentMutationPayload): Promise<CommissionPayment> => {
-      if (!tenantId) throw new Error('Tenant não identificado.');
+      const { data, error } = await supabase.rpc('register_commission_payment', {
+        p_commission_id: commissionId,
+        p_valor_pago: input.valor_pago,
+        p_data_pagamento: input.data_pagamento,
+        p_payment_method: input.payment_method ?? null,
+        p_payment_reference: input.payment_reference ?? null,
+        p_comprovante_url: input.comprovante_url ?? null,
+        p_observacoes: input.observacoes ?? null,
+      });
 
-      const commission = await fetchCommissionRow(commissionId);
-      if (commission.is_finalizada) {
-        throw new Error('Esta comissão está finalizada e não aceita novos pagamentos.');
-      }
-
-      const totalComissao = commission.gross_value ?? commission.base_value;
-      const saldoDisponivel = totalComissao - commission.total_pago;
-
-      if (input.valor_pago > saldoDisponivel + 0.01) {
-        throw new Error(`Valor informado excede o saldo disponível da comissão. Saldo atual: ${formatCurrency(saldoDisponivel)}`);
-      }
-
-      const { data: payment, error: paymentError } = await supabase
-        .from('commission_payments')
-        .insert({
-          ...input,
-          tenant_id: tenantId,
-          commission_id: commissionId,
-          created_by_user_id: user?.id ?? null,
-          updated_by_user_id: user?.id ?? null,
-        })
-        .select()
-        .single();
-
-      if (paymentError) throw paymentError;
-
-      const newTotalPago = commission.total_pago + input.valor_pago;
-      const newSaldo = totalComissao - newTotalPago;
-      // Fiel a `registerPaymentMutation`: só força "pago" quando o saldo
-      // zera; caso contrário mantém o status corrente (ex: "agendado" segue
-      // "agendado" após um pagamento parcial).
-      const newStatus = newSaldo <= 0.01 ? 'pago' : commission.status;
-
-      const { error: commissionError } = await supabase
-        .from('commissions')
-        .update({ total_pago: newTotalPago, saldo: newSaldo, status: newStatus, updated_by_user_id: user?.id ?? null })
-        .eq('id', commissionId);
-
-      if (commissionError) throw commissionError;
-
-      return payment;
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => invalidateCommissionQueries(queryClient, commissionId),
   });
@@ -251,58 +184,26 @@ export function useCreatePayment(commissionId: string) {
 
 /**
  * Edita um pagamento e recalcula `commissions.total_pago`/`saldo`/`status`
- * — tradução de `editPaymentMutation`. Diferente de `useCreatePayment`, o
- * `newStatus` aqui sempre recai para `a_pagar` quando o saldo não zera
- * (fiel ao original: `newSaldo <= 0.01 ? "PAGO" : "A_PAGAR"`, não preserva
- * o status anterior).
+ * — tradução de `editPaymentMutation`. Chama a RPC `update_commission_payment`
+ * (ver `supabase/migrations/0029_*.sql`), mesmo motivo de `useCreateAdjustment`.
  */
 export function useUpdatePayment(commissionId: string) {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: CommissionPaymentMutationPayload }): Promise<CommissionPayment> => {
-      const commission = await fetchCommissionRow(commissionId);
-      if (commission.is_finalizada) {
-        throw new Error('Esta comissão está finalizada e não aceita edição de pagamentos.');
-      }
+    mutationFn: async ({ id, data: input }: { id: string; data: CommissionPaymentMutationPayload }): Promise<CommissionPayment> => {
+      const { data, error } = await supabase.rpc('update_commission_payment', {
+        p_payment_id: id,
+        p_valor_pago: input.valor_pago,
+        p_data_pagamento: input.data_pagamento,
+        p_payment_method: input.payment_method ?? null,
+        p_payment_reference: input.payment_reference ?? null,
+        p_comprovante_url: input.comprovante_url ?? null,
+        p_observacoes: input.observacoes ?? null,
+      });
 
-      const { data: oldPayment, error: oldPaymentError } = await supabase
-        .from('commission_payments')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (oldPaymentError) throw oldPaymentError;
-
-      const totalComissao = commission.gross_value ?? commission.base_value;
-      const saldoDisponivel = totalComissao - commission.total_pago + oldPayment.valor_pago;
-
-      if (data.valor_pago > saldoDisponivel + 0.01) {
-        throw new Error(`Valor informado excede o saldo disponível. Saldo disponível: ${formatCurrency(saldoDisponivel)}`);
-      }
-
-      const { data: payment, error: paymentError } = await supabase
-        .from('commission_payments')
-        .update({ ...data, updated_by_user_id: user?.id ?? null })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (paymentError) throw paymentError;
-
-      const newTotalPago = commission.total_pago - oldPayment.valor_pago + data.valor_pago;
-      const newSaldo = totalComissao - newTotalPago;
-      const newStatus = newSaldo <= 0.01 ? 'pago' : 'a_pagar';
-
-      const { error: commissionError } = await supabase
-        .from('commissions')
-        .update({ total_pago: newTotalPago, saldo: newSaldo, status: newStatus, updated_by_user_id: user?.id ?? null })
-        .eq('id', commissionId);
-
-      if (commissionError) throw commissionError;
-
-      return payment;
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => invalidateCommissionQueries(queryClient, commissionId),
   });
@@ -310,51 +211,17 @@ export function useUpdatePayment(commissionId: string) {
 
 /**
  * Soft-deleta um pagamento e recalcula `commissions.total_pago`/`saldo`/
- * `status` — tradução de `deletePaymentMutation` (`newSaldo > 0.01 ?
- * "A_PAGAR" : "PAGO"`, fiel ao original).
+ * `status` — tradução de `deletePaymentMutation`. Chama a RPC
+ * `delete_commission_payment` (ver `supabase/migrations/0029_*.sql`),
+ * mesmo motivo de `useCreateAdjustment`.
  */
 export function useSoftDeletePayment(commissionId: string) {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (paymentId: string): Promise<void> => {
-      const commission = await fetchCommissionRow(commissionId);
-      if (commission.is_finalizada) {
-        throw new Error('Esta comissão está finalizada e não aceita exclusão de pagamentos.');
-      }
-
-      const { data: paymentToDelete, error: paymentFetchError } = await supabase
-        .from('commission_payments')
-        .select('*')
-        .eq('id', paymentId)
-        .single();
-
-      if (paymentFetchError) throw paymentFetchError;
-
-      const { error: deleteError } = await supabase
-        .from('commission_payments')
-        .update({
-          is_deleted: true,
-          deleted_at: new Date().toISOString(),
-          deleted_by_user_id: user?.id ?? null,
-          updated_by_user_id: user?.id ?? null,
-        })
-        .eq('id', paymentId);
-
-      if (deleteError) throw deleteError;
-
-      const totalComissao = commission.gross_value ?? commission.base_value;
-      const newTotalPago = commission.total_pago - paymentToDelete.valor_pago;
-      const newSaldo = totalComissao - newTotalPago;
-      const newStatus = newSaldo > 0.01 ? 'a_pagar' : 'pago';
-
-      const { error: commissionError } = await supabase
-        .from('commissions')
-        .update({ total_pago: newTotalPago, saldo: newSaldo, status: newStatus, updated_by_user_id: user?.id ?? null })
-        .eq('id', commissionId);
-
-      if (commissionError) throw commissionError;
+      const { error } = await supabase.rpc('delete_commission_payment', { p_payment_id: paymentId });
+      if (error) throw error;
     },
     onSuccess: () => invalidateCommissionQueries(queryClient, commissionId),
   });
