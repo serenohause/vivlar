@@ -131,6 +131,61 @@ Exemplos: módulo de Projetos/Unidades adiciona os KPIs de unidades;
 CRM adiciona o funil de vendas; Financeiro adiciona o gráfico de receita;
 Vistorias/Manutenção adicionam a seção "Operacional e Pós-Venda".
 
+## Débito técnico por módulo (o que cada módulo deixou para depois)
+
+Registro consolidado, atualizado a cada módulo (pedido do usuário,
+2026-07-21: "documente isso" para não deixar o sistema incompleto sem
+perceber). Cada item aqui é uma simplificação deliberada — sempre porque
+a peça que faltava é o assunto de um módulo futuro — não um bug
+esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
+
+**Módulo 1 — Auth**
+- Fluxo de aceitar convite de colaborador para um tenant já existente
+  (hoje só dá para criar tenant novo como admin; convite de outros
+  usuários para um tenant existente não está implementado).
+- Nome de exibição do usuário: usa o e-mail (antes do `@`) como iniciais/
+  nome no shell — não há campo de nome próprio no perfil ainda.
+- Enumeração de e-mail no signup e ausência de rate limit na criação de
+  tenants — riscos aceitos, ver seção "Riscos aceitos" abaixo.
+
+**Módulo 3 — Catálogo (Terrenos/Projetos/Unidades)**
+- Terrenos: sem mapa/editor de polígono (Leaflet); localização é só
+  lat/lng em inputs simples.
+- Terrenos: botão "Transformar em Projeto" fica desabilitado (depende de
+  um fluxo de criação de projeto vinculado ao terreno).
+- Projetos: sem aba "Resultado Operacional" (viabilidade econômica),
+  sem `broker_responsavel_id`, sem cards de Negociações/Documentos/
+  Contratos no detalhe.
+- Unidades: sem aba financeira, sem aba de vistoria, sem checklist de
+  documentos, sem timeline de atividades — essas abas do `UnitDetail.jsx`
+  original chegam com os módulos de Financeiro, Vistorias, Documentos e
+  CRM respectivamente.
+- Unidades: `active_deal_id` não existe na tabela (dependia de `deals`,
+  que já existe desde o módulo 4 — **candidato a resolver na próxima
+  migration de unidades**, ver nota abaixo).
+- Unidades: pipeline `admin_status` sem validação de documentos
+  obrigatórios antes de avançar (avisado discretamente na UI); mudança
+  de estágio não grava em `status_transitions` ainda (só o módulo de
+  CRM grava lá, para `sales_stage`).
+- Unidades: sem validação de capacidade do projeto (`total_units`) ao
+  criar unidade nova.
+- Unidades: exclusão (soft delete) não bloqueia mais se a unidade tem
+  negócio ativo — **isso já é possível verificar agora que `deals`
+  existe (módulo 4), mas ainda não foi implementado**; era esperado
+  quando `units` foi construído (deals não existia ainda), continua
+  pendente.
+
+**Módulo 4 — CRM (Clientes/Corretores/Imobiliárias/Deals)**
+- `DealDetail`: sem aba "Documentos" (depende do módulo de Documentos).
+- Sem criação automática de `Commission` ao marcar negócio como vendido
+  (módulo de Comissões).
+- Sem convite de portal para o cliente ao vender (módulo de Portal do
+  Cliente — também listado no módulo 1).
+- Sem notificação/integração com Microsoft Teams (não existe tabela
+  `notifications`, e a integração externa em si é feature à parte).
+- `deal_brokers` (co-corretagem) e `unit_checks` não foram criados —
+  nenhuma tela do original de fato os usa hoje.
+
 ## Riscos aceitos (não corrigidos, decisão consciente do usuário)
 
 Da auditoria de segurança do módulo de auth (2026-07-20), nenhum achado
@@ -165,6 +220,7 @@ sem lógica de negócio).
 - [x] Auth + RLS + isolamento validado
 - [x] Módulo 1 (auth + multitenancy) implementado, auditado e em produção
 - [x] Módulo 2 (dashboard: shell/sidebar + página mínima) implementado e em produção
-- [x] Módulo 3 (catálogo: terrenos, projetos, unidades + bloco de KPIs no dashboard) implementado, auditado e em produção — https://vivlar.vercel.app
-- [ ] Demais módulos (CRM, financeiro, comissões, investidores, vistorias/manutenção, documentos) via `/new-feature`
+- [x] Módulo 3 (catálogo: terrenos, projetos, unidades + bloco de KPIs no dashboard) implementado, auditado e em produção
+- [x] Módulo 4 (CRM: clientes, corretores, imobiliárias, kanban de negócios + bloco de funil no dashboard) implementado — https://vivlar.vercel.app
+- [ ] Demais módulos (financeiro, comissões, investidores, vistorias/manutenção, documentos) via `/new-feature`
 - [ ] Auditoria de arquitetura geral rodada
