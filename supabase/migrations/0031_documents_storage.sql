@@ -1,0 +1,52 @@
+-- 0031_documents_storage.sql
+-- Bucket de Storage para upload real de arquivo do módulo de Documentos
+-- (tabela `documents`, 0030). Primeiro bucket do projeto — nenhum módulo
+-- anterior fez upload real (comprovante_url em payment_installments/
+-- commission_payments sempre foi tratado como texto/URL, decisão
+-- consciente registrada em 0020/0026, porque eram campos incidentais a
+-- outros módulos; aqui documento é o próprio produto do módulo).
+--
+-- Bucket PRIVADO (`public = false`): sem leitura pública/anônima. Acesso só
+-- via usuário autenticado do tenant certo, através de RLS em
+-- `storage.objects` (ou URL assinada gerada no backend, quando existir).
+--
+-- CONVENCAO DE PATH (o frontend precisa seguir exatamente isto):
+--   {tenant_id}/{uuid_ou_timestamp}-{nome_original_do_arquivo}
+--   ex.: 11111111-1111-1111-1111-111111111111/1721606400000-laudo.pdf
+-- O PRIMEIRO segmento do path é sempre o tenant_id (uuid, sem hífens
+-- adicionais nem case alterado) — é isso que a policy de storage.objects
+-- (via `storage.foldername(name)`) usa para isolar por tenant. Upload para
+-- qualquer outro primeiro segmento que não seja o tenant_id do próprio
+-- usuário deve ser rejeitado pela policy de INSERT (with check).
+-- `documents.file_url` (0030) guarda esse path (não uma URL pública).
+--
+-- RLS de `storage.objects` para o bucket `documents`: NAO configurada
+-- nesta migration -- é responsabilidade do subagente `rls-guardian` (mesma
+-- categoria de trabalho que RLS de tabela: "nunca escrevo políticas de
+-- RLS", ver regras do `schema-architect`), com teste de isolamento
+-- correspondente. Esperado, quando implementado:
+--   * select: authenticated, usando
+--     (storage.foldername(name))[1] = (auth.jwt() ->> 'tenant_id')
+--     and (auth.jwt() ->> 'tenant_role') in ('admin','comercial','administrativo')
+--   * insert: mesma condição, como `with check` (garante que o client não
+--     escolhe fazer upload na pasta de outro tenant)
+--   * update/delete: avaliar se é necessário (provavelmente não -- um
+--     re-upload deveria virar um novo objeto/registro, não substituição
+--     in-place; decisão de produto, não de schema)
+--   * nada para `anon` -- bucket privado, sem leitura pública.
+-- RLS já vem habilitada por padrão pelo Supabase em storage.objects; não é
+-- necessário (nem eu deveria) rodar `alter table storage.objects enable
+-- row level security` aqui -- só confirmar isso é responsabilidade da
+-- auditoria pós-push do rls-guardian.
+
+insert into storage.buckets (id, name, public)
+values ('documents', 'documents', false)
+on conflict (id) do nothing;
+
+-- ---------------------------------------------------------------------
+-- RLS PENDENTE (storage.objects, bucket `documents`): sem policies de
+-- select/insert/update ainda, nenhum usuário autenticado consegue ler nem
+-- gravar neste bucket (RLS nega tudo por padrão até policy existir) --
+-- comportamento seguro por omissão até o rls-guardian configurar o
+-- isolamento por tenant_id do path, na próxima etapa.
+-- ---------------------------------------------------------------------
