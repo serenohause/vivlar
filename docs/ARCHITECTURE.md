@@ -206,6 +206,23 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   (não enum), diferente do original — normalizados na apresentação
   (gráfico de formas de pagamento) em vez de restringidos na entrada.
 
+**Módulo 6 — Comissões**
+- Sem `entities.Notification` em `CommissionDetail.jsx` (tabela não
+  existe ainda, mesmo padrão dos módulos anteriores).
+- Anexos (`attachment_url`/`comprovante_url`) são texto/URL, sem upload
+  real de arquivo — mesmo padrão do financeiro.
+- **Fechado nesta leva**: a criação automática de `Commission` ao
+  vender um negócio, que tinha ficado pendente no módulo de CRM, agora
+  acontece dentro da própria RPC `update_deal_stage`
+  (`supabase/migrations/0028_*.sql`) — atômica junto com a troca de
+  estágio, sem precisar de uma chamada solta do client.
+- Não há criação manual de comissão avulsa (confirmado: nem o original
+  tem essa tela — comissão só nasce da venda de um negócio).
+- Sem bloco de comissões no Dashboard Executivo: `Dashboard.jsx`
+  original importa dados de comissões (`useDashboardData`) mas nunca os
+  renderiza — mesmo código morto já visto em `DashboardStats`/
+  `DashboardCharts` — então não há nada real para replicar aqui.
+
 ## Riscos aceitos (não corrigidos, decisão consciente do usuário)
 
 Nenhum achado crítico/alto em nenhuma auditoria de segurança até agora.
