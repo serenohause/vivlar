@@ -221,6 +221,6 @@ sem lógica de negócio).
 - [x] Módulo 1 (auth + multitenancy) implementado, auditado e em produção
 - [x] Módulo 2 (dashboard: shell/sidebar + página mínima) implementado e em produção
 - [x] Módulo 3 (catálogo: terrenos, projetos, unidades + bloco de KPIs no dashboard) implementado, auditado e em produção
-- [x] Módulo 4 (CRM: clientes, corretores, imobiliárias, kanban de negócios + bloco de funil no dashboard) implementado — https://vivlar.vercel.app
+- [x] Módulo 4 (CRM: clientes, corretores, imobiliárias, kanban de negócios + bloco de funil no dashboard) implementado, auditado e em produção — https://vivlar.vercel.app
 - [ ] Demais módulos (financeiro, comissões, investidores, vistorias/manutenção, documentos) via `/new-feature`
 - [ ] Auditoria de arquitetura geral rodada
