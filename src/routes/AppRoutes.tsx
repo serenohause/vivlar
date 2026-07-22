@@ -13,6 +13,8 @@ import { getAllNavPageNames } from '@/features/dashboard/navigation';
 import { Dashboard } from '@/features/dashboard/pages/Dashboard';
 import { CRMPage } from '@/features/deals/pages/CRMPage';
 import { DealDetailPage } from '@/features/deals/pages/DealDetailPage';
+import { FinanceAccountDetailPage } from '@/features/finance/pages/FinanceAccountDetailPage';
+import { FinanceListPage } from '@/features/finance/pages/FinanceListPage';
 import { ProjectDetailPage } from '@/features/projects/pages/ProjectDetailPage';
 import { ProjectFormPage } from '@/features/projects/pages/ProjectFormPage';
 import { ProjectsListPage } from '@/features/projects/pages/ProjectsListPage';
@@ -39,17 +41,21 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 // saem desta lista e ganham `<Route>` explícita abaixo — começou por
 // "Terrains" (Terrenos), depois "Projects" (Projetos) e "Units" (Unidades),
 // fechando o módulo de catálogo, depois "Clients" (Clientes), "Brokers"
-// (Corretores) e "RealEstateAgencies" (Imobiliárias), e agora "CRM" (Kanban
-// do funil de vendas + detalhe do negócio), fechando o módulo CRM/Vendas —
-// todas seguem a mesma convenção de sub-rota: detalhe em "/<slug>/:id",
-// criação em "/<slug>/novo" (edição não tem rota própria — é um dialog,
-// fiel ao original quando ele existe; "Brokers"/"RealEstateAgencies" não
-// tinham detalhe no original, só lista + dialog — ganharam um aqui para
-// manter a mesma convenção de navegação do resto do app). "CRM" foge um
-// pouco do padrão: não tem "/crm/novo" (criar negócio é um dialog dentro do
-// próprio Kanban, fiel ao original, que nunca teve uma página de criação
-// separada) — só "/crm" (Kanban) e "/crm/:id" (detalhe do negócio).
-const PAGES_WITH_REAL_ROUTE = ['Terrains', 'Projects', 'Units', 'Clients', 'Brokers', 'RealEstateAgencies', 'CRM'];
+// (Corretores) e "RealEstateAgencies" (Imobiliárias), depois "CRM" (Kanban
+// do funil de vendas + detalhe do negócio), fechando o módulo CRM/Vendas, e
+// agora "Finance" (Contas a Receber: lista + detalhe da carteira financeira
+// de uma unidade/cliente) — todas seguem a mesma convenção de sub-rota:
+// detalhe em "/<slug>/:id", criação em "/<slug>/novo" (edição não tem rota
+// própria — é um dialog, fiel ao original quando ele existe;
+// "Brokers"/"RealEstateAgencies" não tinham detalhe no original, só lista +
+// dialog — ganharam um aqui para manter a mesma convenção de navegação do
+// resto do app). "CRM" e "Finance" fogem um pouco do padrão: nenhum dos dois
+// tem "/crm/novo"/"/finance/novo" — criar negócio é um dialog dentro do
+// próprio Kanban (fiel ao original), e uma carteira financeira nasce a
+// partir de uma unidade vendida, não de uma tela de criação isolada (ver
+// `CreateFinanceAccountDialog`, acionado a partir de `UnitDetailPage`) — só
+// "/finance" (lista) e "/finance/:id" (detalhe da carteira).
+const PAGES_WITH_REAL_ROUTE = ['Terrains', 'Projects', 'Units', 'Clients', 'Brokers', 'RealEstateAgencies', 'CRM', 'Finance'];
 const COMING_SOON_PAGE_NAMES = getAllNavPageNames().filter(
   (name) => name !== 'Dashboard' && !PAGES_WITH_REAL_ROUTE.includes(name)
 );
@@ -91,6 +97,9 @@ export function AppRoutes() {
 
           <Route path={pageUrl('CRM')} element={<CRMPage />} />
           <Route path={`${pageUrl('CRM')}/:id`} element={<DealDetailPage />} />
+
+          <Route path={pageUrl('Finance')} element={<FinanceListPage />} />
+          <Route path={`${pageUrl('Finance')}/:id`} element={<FinanceAccountDetailPage />} />
 
           {COMING_SOON_PAGE_NAMES.map((pageName) => (
             <Route key={pageName} path={pageUrl(pageName)} element={<ComingSoonPage pageName={pageName} />} />

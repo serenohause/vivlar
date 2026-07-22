@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Building2, Edit2, Home } from 'lucide-react';
+import { ArrowLeft, Building2, DollarSign, Edit2, Home } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
 import { Label } from '@/components/ui/label';
 import { LoadingInline } from '@/components/ui/loading-inline';
+import { CreateFinanceAccountDialog } from '@/features/finance/components/CreateFinanceAccountDialog';
+import { useFinanceAccountsByUnit } from '@/features/finance/hooks';
 import { useProject, useProjects } from '@/features/projects/hooks';
 import { UnitAdminStatusPipeline } from '@/features/units/components/UnitAdminStatusPipeline';
 import { UnitEditDialog } from '@/features/units/components/UnitEditDialog';
@@ -17,15 +19,16 @@ import { pageUrl } from '@/lib/page-url';
 
 /**
  * Tradução simplificada de `original-project/src/pages/UnitDetail.jsx` —
- * escopo combinado com o usuário: sem as abas de Documentos, Vistorias,
- * Financeiro e Atividades (dependem de `documents`/`inspections`/
- * `payment_installments`/`activities`, módulos futuros), sem o card de
- * "Negociação" (depende de `deals`, CRM futuro) e sem `UnitAlerts` (a
- * versão original cruza dados de módulos que ainda não existem — ver
- * relatório final). O que sobra: os campos próprios da unidade
- * (informações básicas + simulação MCMV pública) e o fluxo administrativo
- * MCMV (`UnitAdminStatusPipeline`), sem a validação de documentos
- * obrigatórios do original.
+ * escopo combinado com o usuário: sem as abas de Documentos, Vistorias e
+ * Atividades (dependem de `documents`/`inspections`/`activities`, módulos
+ * futuros), sem o card de "Negociação" (depende de `deals`, CRM futuro — a
+ * unidade já linka para o negócio via `DealDetailPage`, não o contrário) e
+ * sem `UnitAlerts` (a versão original cruza dados de módulos que ainda não
+ * existem — ver relatório final). O que sobra: os campos próprios da
+ * unidade (informações básicas + simulação MCMV pública), o fluxo
+ * administrativo MCMV (`UnitAdminStatusPipeline`) e o card "Financeiro"
+ * (link para a carteira financeira da unidade, ou botão para criar uma —
+ * ver `CreateFinanceAccountDialog`, `features/finance/hooks.ts`).
  */
 export function UnitDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -33,8 +36,10 @@ export function UnitDetailPage() {
   const { data: unit, isLoading, isError, refetch } = useUnit(id);
   const { data: project } = useProject(unit?.project_id);
   const { data: projects } = useProjects();
+  const { data: financeAccounts } = useFinanceAccountsByUnit(id);
 
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showCreateFinanceDialog, setShowCreateFinanceDialog] = useState(false);
 
   if (isLoading) {
     return <LoadingInline />;
@@ -58,6 +63,13 @@ export function UnitDetailPage() {
 
   const hasSimulation =
     unit.entrada_minima != null || unit.subsidio_simulado != null || unit.parcela_simulada != null || unit.observacoes_publica;
+
+  // Mesmo critério de `primaryAccount` em `original-project/src/pages/Finance.jsx`
+  // (`accounts.find(a => a.status === "ativa") || accounts[0]`) — uma
+  // unidade pode ter mais de uma carteira ao longo do tempo (distrato + nova
+  // venda, ver comentário em `0019_finance_accounts.sql`).
+  const primaryFinanceAccount =
+    financeAccounts?.find((account) => account.status === 'ativa') ?? financeAccounts?.[0] ?? null;
 
   return (
     <div className="space-y-6">
@@ -175,6 +187,22 @@ export function UnitDetailPage() {
               <span className="text-muted-foreground">Status Comercial</span>
               <UnitStatusBadge status={unit.status} />
             </div>
+            <div className="border-t pt-4">
+              <Label className="mb-2 block text-xs text-muted-foreground">Financeiro</Label>
+              {primaryFinanceAccount ? (
+                <Link to={`${pageUrl('Finance')}/${primaryFinanceAccount.id}`}>
+                  <Button variant="outline" className="w-full">
+                    <DollarSign className="mr-2 h-4 w-4" />
+                    Ver Carteira Financeira
+                  </Button>
+                </Link>
+              ) : (
+                <Button variant="outline" className="w-full" onClick={() => setShowCreateFinanceDialog(true)}>
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  Criar Carteira Financeira
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -223,6 +251,13 @@ export function UnitDetailPage() {
       )}
 
       <UnitEditDialog unit={unit} projects={projects ?? []} open={showEditDialog} onOpenChange={setShowEditDialog} />
+
+      <CreateFinanceAccountDialog
+        open={showCreateFinanceDialog}
+        onOpenChange={setShowCreateFinanceDialog}
+        unit={unit}
+        onCreated={(account) => navigate(`${pageUrl('Finance')}/${account.id}`)}
+      />
     </div>
   );
 }
