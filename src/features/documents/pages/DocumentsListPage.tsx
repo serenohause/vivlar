@@ -24,6 +24,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { DocumentEditDialog } from '@/features/documents/components/DocumentEditDialog';
 import { DocumentFormDialog } from '@/features/documents/components/DocumentFormDialog';
 import { DocumentStatusBadge } from '@/features/documents/components/DocumentStatusBadge';
+import { DocumentTypeIcon } from '@/features/documents/components/DocumentTypeIcon';
 import { DOC_TYPE_LABELS, DOCUMENT_STATUS_CONFIG } from '@/features/documents/constants';
 import { useDocuments, useSoftDeleteDocument, useUpdateDocumentStatus, getDocumentSignedUrl } from '@/features/documents/hooks';
 import { DOCUMENT_STATUS_VALUES } from '@/features/documents/types';
@@ -207,9 +208,7 @@ export function DocumentsListPage() {
                   <TableRow key={doc.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                          <FileText className="h-5 w-5 text-muted-foreground" />
-                        </div>
+                        <DocumentTypeIcon docType={doc.doc_type} />
                         <div>
                           <p className="font-medium text-foreground">{doc.title}</p>
                           {doc.file_name && <p className="text-xs text-muted-foreground">{doc.file_name}</p>}
