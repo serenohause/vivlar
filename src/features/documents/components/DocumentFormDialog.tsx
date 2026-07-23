@@ -16,6 +16,15 @@ import type { DocumentType } from '@/features/documents/types';
 import type { Project } from '@/features/projects/types';
 import type { Unit } from '@/features/units/types';
 
+// Achado de auditoria de segurança (severidade média): `accept` do
+// `<input type="file">` é só uma dica de UI do seletor do SO, não impede
+// selecionar outro tipo ("todos os arquivos") nem limita tamanho — sem
+// isso, nada barrava upload de tipo/tamanho arbitrário antes de chegar no
+// bucket. Mesmos limites espelhados no bucket via `allowed_mime_types`/
+// `file_size_limit` (ver migration de storage), defesa em profundidade.
+const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB
+
 const emptyForm: DocumentUploadFormInput = {
   project_id: '',
   unit_id: '',
@@ -79,7 +88,21 @@ export function DocumentFormDialog({ open, onOpenChange, projects, units, locked
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    if (file) setSelectedFile(file);
+    if (!file) return;
+
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      setError('Tipo de arquivo não permitido. Envie PDF, JPG ou PNG.');
+      event.target.value = '';
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setError('Arquivo muito grande. O limite é 20MB.');
+      event.target.value = '';
+      return;
+    }
+
+    setError(null);
+    setSelectedFile(file);
   }
 
   const projectUnits = (units ?? []).filter((unit) => unit.project_id === formData.project_id);
