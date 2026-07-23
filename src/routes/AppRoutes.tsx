@@ -25,6 +25,11 @@ import { TemplatesListPage } from '@/features/inspection-templates/pages/Templat
 import { CreateInspectionPage } from '@/features/inspections/pages/CreateInspectionPage';
 import { InspectionDetailPage } from '@/features/inspections/pages/InspectionDetailPage';
 import { InspectionsListPage } from '@/features/inspections/pages/InspectionsListPage';
+import { InvestmentContributionsListPage } from '@/features/investors/pages/InvestmentContributionsListPage';
+import { InvestmentReturnsListPage } from '@/features/investors/pages/InvestmentReturnsListPage';
+import { InvestorDashboardPage } from '@/features/investors/pages/InvestorDashboardPage';
+import { InvestorDetailPage } from '@/features/investors/pages/InvestorDetailPage';
+import { InvestorsListPage } from '@/features/investors/pages/InvestorsListPage';
 import { MaintenanceDetailPage } from '@/features/maintenance/pages/MaintenanceDetailPage';
 import { MaintenanceListPage } from '@/features/maintenance/pages/MaintenanceListPage';
 import { ProjectDetailPage } from '@/features/projects/pages/ProjectDetailPage';
@@ -113,7 +118,19 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 // mesma convenção documentada em `src/lib/page-url.ts`) em vez de
 // "/inspections/novo" — e não "/inspections/novo" — preservando também a
 // query string `?unit=<id>` que `UnitDetailPage` usa para pré-selecionar a
-// unidade no passo 1 do wizard.
+// unidade no passo 1 do wizard. Fechando o módulo 10 (Investidores):
+// "InvestorDashboard" (resultado operacional x investimentos, sem sub-rota),
+// "Investors" (lista, "/investors") + "InvestorDetail" ("/investors/:id" —
+// só "InvestorDetail" não tinha item de nav próprio, é navegação a partir da
+// lista, mesma convenção de detalhe do resto do app; sem "/investors/novo":
+// criar investidor é um dialog dentro da própria lista, fiel ao original,
+// mesma escolha já feita para "CRM"/"Finance"/"Templates" acima),
+// "InvestmentContributions" (lista, "/investment-contributions") e
+// "InvestmentReturns" (lista, "/investment-returns") — ambas também só
+// dialog de criação, sem sub-rota de detalhe própria (o original não tinha
+// `InvestmentContributionDetail`/`InvestmentReturnDetail` como páginas de
+// fato conectadas, só links quebrados — a lista já cobre visualização/edição
+// via dialog inline, mesmo padrão de "Commissions").
 const PAGES_WITH_REAL_ROUTE = [
   'Terrains',
   'Projects',
@@ -131,6 +148,10 @@ const PAGES_WITH_REAL_ROUTE = [
   'Inspections',
   'CreateInspection',
   'AdminMaintenance',
+  'InvestorDashboard',
+  'Investors',
+  'InvestmentContributions',
+  'InvestmentReturns',
 ];
 const COMING_SOON_PAGE_NAMES = getAllNavPageNames().filter(
   (name) => name !== 'Dashboard' && !PAGES_WITH_REAL_ROUTE.includes(name)
@@ -193,6 +214,12 @@ export function AppRoutes() {
 
           <Route path={pageUrl('AdminMaintenance')} element={<MaintenanceListPage />} />
           <Route path={`${pageUrl('AdminMaintenance')}/:id`} element={<MaintenanceDetailPage />} />
+
+          <Route path={pageUrl('InvestorDashboard')} element={<InvestorDashboardPage />} />
+          <Route path={pageUrl('Investors')} element={<InvestorsListPage />} />
+          <Route path={`${pageUrl('Investors')}/:id`} element={<InvestorDetailPage />} />
+          <Route path={pageUrl('InvestmentContributions')} element={<InvestmentContributionsListPage />} />
+          <Route path={pageUrl('InvestmentReturns')} element={<InvestmentReturnsListPage />} />
 
           {COMING_SOON_PAGE_NAMES.map((pageName) => (
             <Route key={pageName} path={pageUrl(pageName)} element={<ComingSoonPage pageName={pageName} />} />

@@ -262,6 +262,7 @@ export const PAGE_LABELS: Record<string, PageLabelEntry> = {
   AdminMaintenance: { label: 'Manutenções', parent: 'Dashboard' },
   InvestorDashboard: { label: 'Dashboard Investidor', parent: 'Dashboard' },
   Investors: { label: 'Investidores', parent: 'Dashboard' },
+  InvestorDetail: { label: 'Detalhe do Investidor', parent: 'Investors' },
   InvestmentContributions: { label: 'Aportes', parent: 'Dashboard' },
   InvestmentReturns: { label: 'Retornos', parent: 'Dashboard' },
   Templates: { label: 'Templates', parent: 'Dashboard' },
