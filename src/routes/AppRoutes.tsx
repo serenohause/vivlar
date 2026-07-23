@@ -22,6 +22,9 @@ import { FinanceListPage } from '@/features/finance/pages/FinanceListPage';
 import { InadimplenciaManagerPage } from '@/features/finance/pages/InadimplenciaManagerPage';
 import { TemplateDetailPage } from '@/features/inspection-templates/pages/TemplateDetailPage';
 import { TemplatesListPage } from '@/features/inspection-templates/pages/TemplatesListPage';
+import { CreateInspectionPage } from '@/features/inspections/pages/CreateInspectionPage';
+import { InspectionDetailPage } from '@/features/inspections/pages/InspectionDetailPage';
+import { InspectionsListPage } from '@/features/inspections/pages/InspectionsListPage';
 import { ProjectDetailPage } from '@/features/projects/pages/ProjectDetailPage';
 import { ProjectFormPage } from '@/features/projects/pages/ProjectFormPage';
 import { ProjectsListPage } from '@/features/projects/pages/ProjectsListPage';
@@ -85,9 +88,23 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 // "/templates/:id" (detalhe) do resto do app, sem "/templates/novo": criar
 // template é um dialog dentro da própria lista (fiel ao
 // `showCreateModal` de `Templates.jsx`), mesma escolha já feita para
-// "CRM"/"Finance" acima. A execução de vistorias em si
-// (`Inspections`/`CreateInspection`/`InspectionDetail`) continua "em
-// construção" — fora do escopo desta leva, só templates de checklist.
+// "CRM"/"Finance" acima. E agora a execução de vistorias em si:
+// "Inspections" (lista, "/inspections") e "InspectionDetail" (checklist
+// completo, fotos e assinaturas, "/inspections/:id") seguem a mesma
+// convenção `/<slug>` + `/<slug>/:id` do resto do app. "CreateInspection"
+// foge dessa convenção de propósito: diferente de "Terrains"/"Projects"/
+// etc (onde a criação é sempre "/<slug>/novo", um sub-recurso da própria
+// entidade), `CreateInspection` já era uma PÁGINA PRÓPRIA no original
+// (`src/pages/CreateInspection.jsx`, um wizard de 3 passos, com link direto
+// a partir de `UnitDetail.jsx` incluindo query string —
+// `CreateInspection?unit=<id>`) — é o único "Create*" que existe como
+// página de verdade no `original-project` inteiro (todo outro fluxo de
+// criação do app é um dialog). Por isso usa `pageUrl('CreateInspection')`
+// (tradução mecânica 1:1 do nome da página original, `/create-inspection`,
+// mesma convenção documentada em `src/lib/page-url.ts`) em vez de
+// "/inspections/novo" — e não "/inspections/novo" — preservando também a
+// query string `?unit=<id>` que `UnitDetailPage` usa para pré-selecionar a
+// unidade no passo 1 do wizard.
 const PAGES_WITH_REAL_ROUTE = [
   'Terrains',
   'Projects',
@@ -102,6 +119,8 @@ const PAGES_WITH_REAL_ROUTE = [
   'Commissions',
   'Documents',
   'Templates',
+  'Inspections',
+  'CreateInspection',
 ];
 const COMING_SOON_PAGE_NAMES = getAllNavPageNames().filter(
   (name) => name !== 'Dashboard' && !PAGES_WITH_REAL_ROUTE.includes(name)
@@ -157,6 +176,10 @@ export function AppRoutes() {
 
           <Route path={pageUrl('Templates')} element={<TemplatesListPage />} />
           <Route path={`${pageUrl('Templates')}/:id`} element={<TemplateDetailPage />} />
+
+          <Route path={pageUrl('Inspections')} element={<InspectionsListPage />} />
+          <Route path={pageUrl('CreateInspection')} element={<CreateInspectionPage />} />
+          <Route path={`${pageUrl('Inspections')}/:id`} element={<InspectionDetailPage />} />
 
           {COMING_SOON_PAGE_NAMES.map((pageName) => (
             <Route key={pageName} path={pageUrl(pageName)} element={<ComingSoonPage pageName={pageName} />} />
