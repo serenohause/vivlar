@@ -327,6 +327,55 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   link pro detalhe completo e botão de novo chamado (desabilitado se a
   unidade não tiver negócio vendido associado).
 
+**Módulo 10 — Investidores**
+- Escopo desta leva é só o lado interno/admin — decisão explícita do
+  usuário (2026-07-23), mesmo critério da Manutenção. `InvestorProjects.jsx`,
+  `InvestorProjectDetail.jsx`, `InvestorContributions.jsx`,
+  `InvestorReturns.jsx` (portal de autoatendimento do investidor, role
+  `investidor` logando pra ver só os próprios dados) ficam para um
+  futuro módulo de Portal, junto com o do Cliente.
+- **Achado real do original, não uma simplificação nossa**: `ProjectInvestor`
+  (vínculo investidor↔projeto, com o % de participação) não tinha
+  nenhuma tela de criação em `original-project/src` — só era lido, nunca
+  criado por nenhuma página. Aparentemente era escrito direto no banco
+  pela equipe técnica do Base44. Como a plataforma nova não tem esse
+  acesso, criamos do zero o dialog "Vincular a Projeto" em
+  `InvestorDetailPage` (com criar/editar/remover vínculo) — sem
+  equivalente visual no original para copiar.
+- **Fechado nesta leva, antes mesmo de ir para produção**: os campos
+  `total_construction_cost`/`total_indirect_costs` de `projects`, que
+  tinham ficado de fora no módulo 3 ("módulo futuro", comentário em
+  `0007_projects.sql`), foram adicionados (`0046_project_operational_result_costs.sql`)
+  e conectados ao formulário de Projeto — sem eles, o cálculo de
+  Resultado Operacional do Dashboard de Investidores ficaria
+  artificialmente otimista (só descontaria comissão, nunca o custo real
+  da obra). Decisão do usuário: corrigir antes do deploy, não aceitar
+  como risco.
+- `calculateParticipationPercentages` (recalcular % de participação
+  automaticamente a partir do valor aportado de todos os investidores de
+  um projeto) existe no original mas nunca está conectado a nenhum
+  `.update()` real — código morto no próprio original. Não implementado;
+  `percentual_participacao` continua sendo definido manualmente por quem
+  cadastra o vínculo. Candidato a um botão "Recalcular automaticamente"
+  em uma rodada futura.
+- `calculateROI`/`aggregateReturnsByInvestor` foram portados por
+  completude (mesmas funções do original), mas — fiel ao próprio
+  original, que os importa sem usar o resultado no JSX renderizado —
+  não são exercidos pela UI nova também.
+- Sem exportação em PDF, sem criação de `Notification`, sem upload real
+  de comprovante de aporte (`comprovante_url`/`comprovante_nome`
+  continuam texto/URL simples, mesmo padrão de `commissions.attachment_url`
+  — nenhuma tela do original faz upload de fato, só exibe se preenchido).
+- Sem bloco de investimentos no Dashboard Executivo: confirmado que
+  `Dashboard.jsx` original não referencia nada de investidores (nem como
+  código morto) — o Dashboard de Investidores é uma página própria, não
+  um bloco do executivo.
+- Controle de acesso por papel refletido na UI (botões de
+  criar/editar/excluir só para `admin`, mesmo padrão da Manutenção) —
+  `comercial`/`administrativo` só consultam, decisão de produto do
+  usuário porque envolve dinheiro de terceiros, sem equivalente no
+  original (o app antigo não tinha controle de acesso por papel).
+
 ## Achados de segurança corrigidos (não aceitos como risco)
 
 - **Módulo 6 — Comissões** (auditoria de 2026-07-21): achado **alto**
@@ -450,5 +499,5 @@ auditoria do módulo 8, mas não específico dele)
 - [x] Módulo 7 (Documentos: upload real via Storage, fechando loops de Unidade e Negócio) implementado, auditado e em produção
 - [x] Módulo 8 (Vistorias: templates de checklist, execução com fotos e assinaturas, fechando loop da Unidade) implementado — https://vivlar.vercel.app
 - [x] Módulo 9 (Manutenção pós-entrega: lista + detalhe, upload de fotos, fechando loop da Unidade) implementado, auditado e em produção — https://vivlar.vercel.app
-- [ ] Investidores via `/new-feature`
+- [x] Módulo 10 (Investidores: cadastro, vínculo a projetos, aportes, retornos, dashboard consolidado) implementado, aguardando auditoria e deploy
 - [ ] Auditoria de arquitetura geral rodada
