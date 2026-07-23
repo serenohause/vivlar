@@ -263,6 +263,13 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   Corrigido movendo as 4 mutations para RPCs transacionais
   (`supabase/migrations/0029_commission_transactional_rpcs.sql`), mesmo
   padrão de `update_deal_stage` (módulo 4).
+- **Módulo 7 — Documentos** (auditoria de 2026-07-21): achado **médio**
+  de upload sem validação real de tipo/tamanho (`accept` do
+  `<input type="file">` é só dica de UI, contornável). Corrigido com
+  validação no client (PDF/JPG/PNG, até 20MB,
+  `DocumentFormDialog.tsx`) espelhada no bucket via
+  `allowed_mime_types`/`file_size_limit`
+  (`supabase/migrations/0033_documents_bucket_limits.sql`).
 
 ## Riscos aceitos (não corrigidos, decisão consciente do usuário)
 
