@@ -449,6 +449,6 @@ auditoria do módulo 8, mas não específico dele)
 - [x] Módulo 6 (Comissões: lista + detalhe com ajustes/pagamentos, criação automática ao vender fechando loop do CRM) implementado, auditado e em produção
 - [x] Módulo 7 (Documentos: upload real via Storage, fechando loops de Unidade e Negócio) implementado, auditado e em produção
 - [x] Módulo 8 (Vistorias: templates de checklist, execução com fotos e assinaturas, fechando loop da Unidade) implementado — https://vivlar.vercel.app
-- [x] Módulo 9 (Manutenção pós-entrega: lista + detalhe, upload de fotos, fechando loop da Unidade) implementado, auditado — aguardando deploy
+- [x] Módulo 9 (Manutenção pós-entrega: lista + detalhe, upload de fotos, fechando loop da Unidade) implementado, auditado e em produção — https://vivlar.vercel.app
 - [ ] Investidores via `/new-feature`
 - [ ] Auditoria de arquitetura geral rodada

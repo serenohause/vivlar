@@ -23,11 +23,21 @@ Outros scripts: `npm run build`, `npm run typecheck`, `npm run lint`, `npm run p
 
 ## Produção
 
-**https://vivlar.vercel.app** — Vercel (deploy automático a cada push em `main`) + Supabase (projeto `vivlar`, região `sa-east-1`).
+**https://vivlar.vercel.app** — Vercel (deploy automático a cada push em `main`) + Supabase (projeto `vivlar`, região `sa-east-1`, ref `hppeqpmxupfghymkulne`).
 
 Construído por módulos, cada um deployado separadamente. Status atual e
 lista completa: **`docs/STATUS.md`** (é o que fica atualizado — não
-duplicar a lista aqui).
+duplicar a lista aqui). Módulo em produção mais recente: Módulo 9 —
+Manutenção pós-entrega (migrations `0037` a `0040` aplicadas ao banco
+remoto, deploy de 2026-07-23).
+
+Checklist seguido a cada deploy (ver `deploy-engineer`): auditoria de
+segurança sem achado crítico/alto em aberto, migrations aplicadas na
+ordem certa, RLS habilitada em toda tabela com `tenant_id` (não só
+policies criadas), variáveis de ambiente client (`VITE_SUPABASE_URL`,
+`VITE_SUPABASE_ANON_KEY`) na Vercel, `SUPABASE_SERVICE_ROLE_KEY` restrita
+a contexto server-side, e smoke test pós-deploy confirmando isolamento
+entre tenants em produção.
 
 ---
 
