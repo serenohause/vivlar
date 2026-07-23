@@ -15,6 +15,7 @@ import { getAllNavPageNames } from '@/features/dashboard/navigation';
 import { Dashboard } from '@/features/dashboard/pages/Dashboard';
 import { CRMPage } from '@/features/deals/pages/CRMPage';
 import { DealDetailPage } from '@/features/deals/pages/DealDetailPage';
+import { DocumentsListPage } from '@/features/documents/pages/DocumentsListPage';
 import { FinanceAccountDetailPage } from '@/features/finance/pages/FinanceAccountDetailPage';
 import { FinanceDashboardPage } from '@/features/finance/pages/FinanceDashboardPage';
 import { FinanceListPage } from '@/features/finance/pages/FinanceListPage';
@@ -72,7 +73,11 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 // — não existe `Commission.create(...)` em lugar nenhum do original
 // (`src/pages/Commissions.jsx`/`CommissionDetail.jsx`), só edição
 // (ajuste/pagamento/agendamento/cancelamento/finalização) da comissão já
-// existente.
+// existente. Por fim, "Documents" (Documentos: gestão documental MCMV, com
+// upload real via Supabase Storage) — só "/documents" (lista), sem
+// sub-rota de detalhe (o original só tem lista + dialog de criar/editar,
+// mesma convenção de "Brokers" antes de ganhar detalhe — aqui optamos por
+// não criar um detalhe que o original também não tem).
 const PAGES_WITH_REAL_ROUTE = [
   'Terrains',
   'Projects',
@@ -85,6 +90,7 @@ const PAGES_WITH_REAL_ROUTE = [
   'FinanceDashboard',
   'InadimplenciaManager',
   'Commissions',
+  'Documents',
 ];
 const COMING_SOON_PAGE_NAMES = getAllNavPageNames().filter(
   (name) => name !== 'Dashboard' && !PAGES_WITH_REAL_ROUTE.includes(name)
@@ -135,6 +141,8 @@ export function AppRoutes() {
 
           <Route path={pageUrl('Commissions')} element={<CommissionsListPage />} />
           <Route path={`${pageUrl('Commissions')}/:id`} element={<CommissionDetailPage />} />
+
+          <Route path={pageUrl('Documents')} element={<DocumentsListPage />} />
 
           {COMING_SOON_PAGE_NAMES.map((pageName) => (
             <Route key={pageName} path={pageUrl(pageName)} element={<ComingSoonPage pageName={pageName} />} />

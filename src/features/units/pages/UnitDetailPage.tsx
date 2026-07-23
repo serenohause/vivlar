@@ -1,12 +1,16 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Building2, DollarSign, Edit2, Home } from 'lucide-react';
+import { ArrowLeft, Building2, DollarSign, Download, Edit2, FileText, Home, Plus } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
 import { Label } from '@/components/ui/label';
 import { LoadingInline } from '@/components/ui/loading-inline';
+import { DocumentFormDialog } from '@/features/documents/components/DocumentFormDialog';
+import { DocumentStatusBadge } from '@/features/documents/components/DocumentStatusBadge';
+import { DOC_TYPE_LABELS } from '@/features/documents/constants';
+import { useDocumentsByUnit, getDocumentSignedUrl } from '@/features/documents/hooks';
 import { CreateFinanceAccountDialog } from '@/features/finance/components/CreateFinanceAccountDialog';
 import { useFinanceAccountsByUnit } from '@/features/finance/hooks';
 import { useProject, useProjects } from '@/features/projects/hooks';
@@ -28,7 +32,11 @@ import { pageUrl } from '@/lib/page-url';
  * unidade (informações básicas + simulação MCMV pública), o fluxo
  * administrativo MCMV (`UnitAdminStatusPipeline`) e o card "Financeiro"
  * (link para a carteira financeira da unidade, ou botão para criar uma —
- * ver `CreateFinanceAccountDialog`, `features/finance/hooks.ts`).
+ * ver `CreateFinanceAccountDialog`, `features/finance/hooks.ts`). O card
+ * "Documentos" (módulo `features/documents`, fechado numa leva posterior)
+ * é só listagem/upload — sem a lógica de checklist de documentos
+ * obrigatórios por `admin_status` do `DocumentChecklist.jsx` original, que
+ * continua fora de escopo (ver `docs/ARCHITECTURE.md`).
  */
 export function UnitDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -37,9 +45,11 @@ export function UnitDetailPage() {
   const { data: project } = useProject(unit?.project_id);
   const { data: projects } = useProjects();
   const { data: financeAccounts } = useFinanceAccountsByUnit(id);
+  const { data: documents } = useDocumentsByUnit(id);
 
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showCreateFinanceDialog, setShowCreateFinanceDialog] = useState(false);
+  const [showDocumentDialog, setShowDocumentDialog] = useState(false);
 
   if (isLoading) {
     return <LoadingInline />;
@@ -207,6 +217,56 @@ export function UnitDetailPage() {
         </Card>
       </div>
 
+      {/* Documentos */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-lg">Documentos</CardTitle>
+          <Button size="sm" variant="outline" onClick={() => setShowDocumentDialog(true)}>
+            <Plus className="mr-1 h-4 w-4" />
+            Novo Documento
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {!documents || documents.length === 0 ? (
+            <div className="py-6 text-center text-muted-foreground">
+              <FileText className="mx-auto mb-2 h-10 w-10 text-muted-foreground/40" />
+              <p className="text-sm">Nenhum documento vinculado a esta unidade.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {documents.map((document) => (
+                <div key={document.id} className="flex items-center justify-between rounded-lg border p-3">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{document.title}</p>
+                      <p className="text-xs text-muted-foreground">{DOC_TYPE_LABELS[document.doc_type]}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <DocumentStatusBadge status={document.status} size="sm" />
+                    {document.file_url && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title="Download"
+                        onClick={async () => {
+                          const signedUrl = await getDocumentSignedUrl(document.file_url as string);
+                          window.open(signedUrl, '_blank', 'noopener,noreferrer');
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Simulação MCMV Pública */}
       {hasSimulation && (
         <Card className="border-0 shadow-sm">
@@ -257,6 +317,16 @@ export function UnitDetailPage() {
         onOpenChange={setShowCreateFinanceDialog}
         unit={unit}
         onCreated={(account) => navigate(`${pageUrl('Finance')}/${account.id}`)}
+      />
+
+      <DocumentFormDialog
+        open={showDocumentDialog}
+        onOpenChange={setShowDocumentDialog}
+        lockedContext={{
+          project_id: unit.project_id,
+          unit_id: unit.id,
+          label: `Vinculado à unidade ${unit.sku}`,
+        }}
       />
     </div>
   );

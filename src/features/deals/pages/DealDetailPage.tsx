@@ -8,6 +8,8 @@ import {
   CheckCircle,
   Clock,
   DollarSign,
+  Download,
+  FileText,
   Home,
   Mail,
   MapPin,
@@ -54,6 +56,10 @@ import {
 } from '@/features/deals/constants';
 import { useDeal, useSoftDeleteDeal, useUpdateDealStage } from '@/features/deals/hooks';
 import type { DealSalesStage } from '@/features/deals/types';
+import { DocumentFormDialog } from '@/features/documents/components/DocumentFormDialog';
+import { DocumentStatusBadge } from '@/features/documents/components/DocumentStatusBadge';
+import { DOC_TYPE_LABELS } from '@/features/documents/constants';
+import { useDocumentsByDeal, getDocumentSignedUrl } from '@/features/documents/hooks';
 import { useProject } from '@/features/projects/hooks';
 import { UnitAdminStatusBadge } from '@/features/units/components/UnitAdminStatusBadge';
 import { useUnit } from '@/features/units/hooks';
@@ -71,10 +77,11 @@ function getInitials(name: string | undefined | null): string {
 
 /**
  * Tradução de `original-project/src/pages/DealDetail.jsx`. Aba "Documentos"
- * NÃO portada (depende de `documents`, módulo futuro) — sobraram só
- * "Atividades" e "Timeline", combinado com o usuário. Sem criação de
- * `Commission`/convite de usuário cliente/notificação Teams ao mudar de
- * estágio (fora de escopo desta leva — ver `useUpdateDealStage`).
+ * fechada nesta leva (módulo `features/documents`, ver `docs/ARCHITECTURE.md`
+ * — tinha ficado pendente quando o módulo de CRM foi construído, porque
+ * `documents` ainda não existia). Sem criação de `Commission`/convite de
+ * usuário cliente/notificação Teams ao mudar de estágio (fora de escopo
+ * desta leva — ver `useUpdateDealStage`).
  */
 export function DealDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -87,9 +94,11 @@ export function DealDetailPage() {
   const { data: broker } = useBroker(deal?.broker_id ?? undefined);
   const { data: activities } = useDealActivities(id);
   const { data: transitions } = useDealStatusTransitions(id);
+  const { data: documents } = useDocumentsByDeal(id);
 
   const [isStageDialogOpen, setIsStageDialogOpen] = useState(false);
   const [isActivityDialogOpen, setIsActivityDialogOpen] = useState(false);
+  const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [selectedStage, setSelectedStage] = useState<DealSalesStage | ''>('');
   const [stageNote, setStageNote] = useState('');
@@ -335,6 +344,7 @@ export function DealDetailPage() {
       <Tabs defaultValue="activities" className="space-y-4">
         <TabsList>
           <TabsTrigger value="activities">Atividades</TabsTrigger>
+          <TabsTrigger value="documents">Documentos</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
         </TabsList>
 
@@ -382,6 +392,57 @@ export function DealDetailPage() {
                           </Button>
                         )}
                         <Badge className={ACTIVITY_STATUS_COLOR[activity.status]}>{activity.status}</Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="documents">
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-lg font-semibold">Documentos</CardTitle>
+              <Button size="sm" variant="outline" onClick={() => setIsDocumentDialogOpen(true)}>
+                <Plus className="mr-1 h-4 w-4" />
+                Novo Documento
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {!documents || documents.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  <FileText className="mx-auto mb-2 h-12 w-12 text-muted-foreground/50" />
+                  <p>Nenhum documento vinculado a este negócio</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {documents.map((document) => (
+                    <div key={document.id} className="flex items-center justify-between rounded-lg border p-3">
+                      <div className="flex items-center gap-3">
+                        <FileText className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{document.title}</p>
+                          <p className="text-xs text-muted-foreground">{DOC_TYPE_LABELS[document.doc_type]}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <DocumentStatusBadge status={document.status} size="sm" />
+                        {document.file_url && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Download"
+                            onClick={async () => {
+                              const signedUrl = await getDocumentSignedUrl(document.file_url as string);
+                              window.open(signedUrl, '_blank', 'noopener,noreferrer');
+                            }}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -491,6 +552,17 @@ export function DealDetailPage() {
         dealId={deal.id}
         clientId={deal.client_id}
         unitId={deal.unit_id}
+      />
+
+      <DocumentFormDialog
+        open={isDocumentDialogOpen}
+        onOpenChange={setIsDocumentDialogOpen}
+        lockedContext={{
+          project_id: deal.project_id,
+          unit_id: deal.unit_id,
+          deal_id: deal.id,
+          label: `Vinculado ao negócio de ${client?.name ?? 'cliente'}`,
+        }}
       />
 
       <AlertDialog open={deleteConfirm} onOpenChange={setDeleteConfirm}>
