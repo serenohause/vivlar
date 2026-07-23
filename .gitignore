@@ -27,3 +27,7 @@ dist-ssr
 original-project/
 .vercel
 .env*
+
+# db/ — exports de dados reais do Base44 original (CSV), usados só para
+# importação pontual no Supabase. Nunca vai pro GitHub.
+db/
