@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/features/auth/AuthContext';
 import { PROJECT_STATUS_OPTIONS } from '@/features/projects/constants';
 import { projectFormSchema, type ProjectFormInput, type ProjectMutationPayload } from '@/features/projects/schemas';
 import type { Project } from '@/features/projects/types';
@@ -87,8 +88,17 @@ interface ProjectFormProps {
  * módulo 10 (Investidores), que precisa desses valores para o cálculo do
  * Resultado Operacional e ainda não tem uma aba própria de projeto para
  * hospedar os cards originais.
+ *
+ * `total_construction_cost`/`total_indirect_costs` só ficam editáveis para
+ * `admin` — mesma decisão de RLS do módulo de Investidores (ver
+ * `0045_rls_investors.sql`/RLS de `projects`): são dados de custo/dinheiro de
+ * terceiros usados no Resultado Operacional, e o banco já rejeita a escrita
+ * de quem não é admin. Aqui só refletimos isso na UI, desabilitando os
+ * campos em vez de deixar o usuário editar algo que vai falhar ao salvar.
  */
 export function ProjectForm({ project, onSubmit, isSubmitting, submitLabel, onCancel }: ProjectFormProps) {
+  const { tenantRole } = useAuth();
+  const isAdmin = tenantRole === 'admin';
   const [formData, setFormData] = useState<ProjectFormState>(() => stateFromProject(project));
   const [error, setError] = useState<string | null>(null);
 
@@ -192,6 +202,7 @@ export function ProjectForm({ project, onSubmit, isSubmitting, submitLabel, onCa
               value={formData.total_construction_cost}
               onChange={(e) => setField('total_construction_cost', e.target.value)}
               placeholder="0,00"
+              disabled={!isAdmin}
             />
           </div>
           <div>
@@ -201,11 +212,14 @@ export function ProjectForm({ project, onSubmit, isSubmitting, submitLabel, onCa
               value={formData.total_indirect_costs}
               onChange={(e) => setField('total_indirect_costs', e.target.value)}
               placeholder="0,00"
+              disabled={!isAdmin}
             />
           </div>
         </div>
         <p className="mt-1 text-xs text-muted-foreground">
-          Valores digitados manualmente, usados no cálculo do Resultado Operacional (Dashboard de Investidores).
+          {isAdmin
+            ? 'Valores digitados manualmente, usados no cálculo do Resultado Operacional (Dashboard de Investidores).'
+            : 'Somente administradores podem editar estes campos.'}
         </p>
       </div>
 
