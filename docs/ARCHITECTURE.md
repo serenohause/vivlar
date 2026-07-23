@@ -344,6 +344,22 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   `DocumentFormDialog.tsx`) espelhada no bucket via
   `allowed_mime_types`/`file_size_limit`
   (`supabase/migrations/0033_documents_bucket_limits.sql`).
+- **Módulo 9 — Manutenção** (auditoria de 2026-07-23): achado **baixo**
+  de regra de negócio ("`scheduled_date` obrigatória ao agendar") só
+  existir no client. Corrigido reforçando a checagem também no hook
+  (`useUpdateMaintenanceRequest`), segunda camada de defesa.
+- **Módulo 9 — Manutenção** (auditoria de 2026-07-23): achado **baixo**
+  de a RLS de UPDATE permitir soft-delete (`is_deleted = true`) para
+  `comercial`/`administrativo`, enquanto a tela só mostra "Excluir" pro
+  Admin — regra de segurança mais permissiva que a intenção de produto.
+  Corrigido restringindo no `WITH CHECK` da policy: só `admin` pode
+  marcar `is_deleted = true` (os outros dois papéis continuam podendo
+  fazer updates normais — status, agendamento, notas — só não excluir)
+  (`supabase/migrations/0040_restrict_maintenance_soft_delete_to_admin.sql`).
+  Efeito colateral aceito, documentado na própria migration:
+  `comercial`/`administrativo` também não conseguem editar uma linha já
+  excluída (mas podem desfazer a exclusão, já que a regra travou quem
+  marca `true`, não quem reverte).
 
 ## Riscos aceitos (não corrigidos, decisão consciente do usuário)
 
@@ -397,6 +413,20 @@ auditoria do módulo 8, mas não específico dele)
   `finance_account_id` (não explorável via UI normal, RLS já isola por
   tenant).
 
+**Módulo 9 — Manutenção** (auditoria de 2026-07-23)
+- Baixo: `responsible_user_id` na mutation de atualização não é validado
+  contra os usuários do tenant (não é FK pra `tenant_users`, só pra
+  `auth.users`). A tela só oferece "Nenhum"/"Eu" como opções, mas uma
+  chamada direta à API poderia setar qualquer UUID. Não expõe dado, só
+  permite um "responsável" inconsistente (exibido como "Outro
+  colaborador" na UI). Revisitar se/quando existir um diretório de
+  usuários do tenant consultável pelo frontend (mesma lacuna já
+  registrada nos módulos 1 e 8).
+- Também transversal (não específico deste módulo): o badge de
+  contagem da sidebar (`useNavigationBadges`) nunca foi implementado
+  pra `crm`/`finance`/`inspections`/`units` em nenhum módulo anterior —
+  ver seção "Débito técnico" acima, onde isso já está registrado.
+
 ## Desvios do padrão do CLAUDE.md
 
 - Etapa 2 (`ui-prototyper` + `prototypes/`) substituída por
@@ -419,6 +449,6 @@ auditoria do módulo 8, mas não específico dele)
 - [x] Módulo 6 (Comissões: lista + detalhe com ajustes/pagamentos, criação automática ao vender fechando loop do CRM) implementado, auditado e em produção
 - [x] Módulo 7 (Documentos: upload real via Storage, fechando loops de Unidade e Negócio) implementado, auditado e em produção
 - [x] Módulo 8 (Vistorias: templates de checklist, execução com fotos e assinaturas, fechando loop da Unidade) implementado — https://vivlar.vercel.app
-- [x] Módulo 9 (Manutenção pós-entrega: lista + detalhe, upload de fotos, fechando loop da Unidade) implementado, aguardando auditoria e deploy
+- [x] Módulo 9 (Manutenção pós-entrega: lista + detalhe, upload de fotos, fechando loop da Unidade) implementado, auditado — aguardando deploy
 - [ ] Investidores via `/new-feature`
 - [ ] Auditoria de arquitetura geral rodada
