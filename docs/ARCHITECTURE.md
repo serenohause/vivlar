@@ -290,6 +290,43 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   usuários do tenant consultável pelo frontend ainda — mesma lacuna já
   registrada no módulo 1, nome de exibição).
 
+**Módulo 9 — Manutenção pós-entrega**
+- Escopo desta leva é só o lado interno/admin (`AdminMaintenance.jsx` +
+  `MaintenanceDetail.jsx`) — decisão explícita do usuário (2026-07-23).
+  `ClientMaintenance.jsx` (cliente abre o próprio chamado) fica para um
+  futuro módulo de Portal do Cliente, que ainda não existe no projeto
+  (hoje a navegação do perfil "cliente" é toda "em construção").
+- Terceiro bucket de Storage do projeto (`maintenance-photos`, privado,
+  só `image/jpeg`/`image/png`, até 20MB) — `photos` fica como array de
+  paths direto na própria tabela (sem tabela de mídia separada, diferente
+  de Vistorias), porque o original não tem entidade de mídia própria
+  pra manutenção.
+- Sem criação de `Notification` ao mudar status/agendar (mesmo critério
+  já usado nos módulos anteriores — tabela não existe no projeto novo).
+- Sem exportação em PDF (`exportMaintenanceToPDF`,
+  `exportMaintenanceRequestToPDF` do original) — funcionalidade
+  secundária, não essencial ao fluxo abrir → agendar → resolver.
+- `suggested_date` existe no schema (documentado desde a migration como
+  "sugerida pelo cliente ao abrir o chamado") mas sem write path nesta
+  rodada, já que a criação é só pelo lado admin — só ganha uso real
+  quando/se o Portal do Cliente for construído.
+- Sem bloco de manutenção no Dashboard Executivo: confirmado que
+  `Dashboard.jsx` original desestrutura `maintenance` de
+  `useDashboardData` mas nunca renderiza nada com isso — mesmo padrão
+  de código morto já visto em Comissões/Vistorias.
+- **Achado transversal, não específico deste módulo**: o badge de
+  contagem da sidebar (`useNavigationBadges`,
+  `src/features/dashboard/hooks.ts`) nunca foi implementado de verdade
+  em nenhum módulo anterior — `crm`/`finance`/`inspections`/`units`
+  continuam sempre zerados, apesar dos módulos que os alimentariam já
+  estarem em produção. Corrigido só o badge `maintenance` nesta leva
+  (contagem real de chamados não resolvidos/cancelados); os demais
+  seguem como débito técnico pendente, fora do escopo desta rodada.
+- **Fechado nesta leva**: seção "Manutenções" no detalhe da Unidade
+  (Catálogo, módulo 3), mesmo padrão da seção "Vistorias" — lista com
+  link pro detalhe completo e botão de novo chamado (desabilitado se a
+  unidade não tiver negócio vendido associado).
+
 ## Achados de segurança corrigidos (não aceitos como risco)
 
 - **Módulo 6 — Comissões** (auditoria de 2026-07-21): achado **alto**
@@ -382,5 +419,6 @@ auditoria do módulo 8, mas não específico dele)
 - [x] Módulo 6 (Comissões: lista + detalhe com ajustes/pagamentos, criação automática ao vender fechando loop do CRM) implementado, auditado e em produção
 - [x] Módulo 7 (Documentos: upload real via Storage, fechando loops de Unidade e Negócio) implementado, auditado e em produção
 - [x] Módulo 8 (Vistorias: templates de checklist, execução com fotos e assinaturas, fechando loop da Unidade) implementado — https://vivlar.vercel.app
-- [ ] Módulo 9 (Manutenção pós-entrega) e demais (investidores) via `/new-feature`
+- [x] Módulo 9 (Manutenção pós-entrega: lista + detalhe, upload de fotos, fechando loop da Unidade) implementado, aguardando auditoria e deploy
+- [ ] Investidores via `/new-feature`
 - [ ] Auditoria de arquitetura geral rodada
