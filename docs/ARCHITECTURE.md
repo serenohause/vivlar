@@ -223,6 +223,36 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   renderiza — mesmo código morto já visto em `DashboardStats`/
   `DashboardCharts` — então não há nada real para replicar aqui.
 
+**Módulo 7 — Documentos**
+- Primeiro módulo com upload real de arquivo (Supabase Storage, bucket
+  privado `documents`, path `{tenant_id}/{arquivo}`, RLS de
+  `storage.objects` isolando por tenant) — todos os módulos anteriores
+  tratavam anexo como texto/URL.
+- `document_status` tem 4 valores (`pendente`, `recebido`, `aprovado`,
+  `rejeitado`) — os docs de plano (`DOMAIN_MAP.md`/`SCHEMA_PLAN.md`)
+  citavam só 3, corrigido ao confirmar contra o código-fonte real.
+- Objeto no Storage não é removido quando o documento é soft-deletado
+  na tabela — fica órfão no bucket; rotina de limpeza é decisão de
+  produto futura, não implementada.
+- Upload que falha no INSERT da tabela tenta remover o arquivo já
+  enviado ao bucket (best-effort, não bloqueia o erro original) — 2
+  escritas não-atômicas, mesmo padrão já aceito em `finance_accounts`
+  (a segunda escrita não envolve valor financeiro, então uma RPC
+  dedicada não se justificou aqui).
+- Sem `DocRequirement` (configuração de quais documentos são
+  obrigatórios por `admin_status`) — pertence ao original a uma tela de
+  Configurações separada de `Documents.jsx`, fora de escopo. Sem isso,
+  a validação de documentos obrigatórios no pipeline `admin_status` de
+  `units` continua não implementada (débito já registrado no módulo 3).
+- **Fechado nesta leva**: aba "Documentos" no detalhe do negócio (CRM,
+  módulo 4) e seção "Documentos" no detalhe da unidade (Catálogo,
+  módulo 3) — ambas usando o mesmo `DocumentFormDialog` com contexto
+  travado (projeto/unidade/negócio pré-preenchidos).
+- Edição de documento é só metadados (tipo/título/data/observações) —
+  sem reenvio de arquivo nem troca de projeto/unidade/status, diferente
+  do original, que reaproveita o mesmo formulário de criação inteiro
+  para edição.
+
 ## Achados de segurança corrigidos (não aceitos como risco)
 
 - **Módulo 6 — Comissões** (auditoria de 2026-07-21): achado **alto**
@@ -290,6 +320,7 @@ ver seção acima para o único caso alto até agora):
 - [x] Módulo 3 (catálogo: terrenos, projetos, unidades + bloco de KPIs no dashboard) implementado, auditado e em produção
 - [x] Módulo 4 (CRM: clientes, corretores, imobiliárias, kanban de negócios + bloco de funil no dashboard) implementado, auditado e em produção
 - [x] Módulo 5 (Financeiro: contas a receber, dashboard financeiro, inadimplência + bloco de KPIs executivos no dashboard) implementado, auditado e em produção
-- [x] Módulo 6 (Comissões: lista + detalhe com ajustes/pagamentos, criação automática ao vender fechando loop do CRM) implementado, auditado e em produção — https://vivlar.vercel.app
-- [ ] Demais módulos (investidores, vistorias/manutenção, documentos) via `/new-feature`
+- [x] Módulo 6 (Comissões: lista + detalhe com ajustes/pagamentos, criação automática ao vender fechando loop do CRM) implementado, auditado e em produção
+- [x] Módulo 7 (Documentos: upload real via Storage, fechando loops de Unidade e Negócio) implementado — https://vivlar.vercel.app
+- [ ] Demais módulos (investidores, vistorias/manutenção) via `/new-feature`
 - [ ] Auditoria de arquitetura geral rodada
