@@ -153,10 +153,7 @@ type UpdateMaintenanceRequestInput = {
   /**
    * Status atual do chamado (já carregado pela página) — usado
    * exclusivamente para decidir o carimbo automático de `resolved_at`
-   * abaixo. A validação "obrigatório `scheduled_date` quando `status` vira
-   * `agendado`" é feita ANTES de chamar esta mutation, em
-   * `MaintenanceDetailPage` (fiel a `handleSubmit`, `MaintenanceDetail.jsx`
-   * linhas 178-182 — checagem no client, não uma constraint de banco).
+   * abaixo.
    */
   currentStatus?: MaintenanceStatus;
 };
@@ -169,6 +166,12 @@ type UpdateMaintenanceRequestInput = {
  * automaticamente quando `status` transiciona PARA `resolvido` (e só
  * então) — decidido aqui, no hook, nunca a partir de um valor enviado pelo
  * client, fiel ao comentário da migration ("nunca um input manual").
+ *
+ * A regra "`scheduled_date` obrigatória quando `status` vira `agendado`" já
+ * é checada em `MaintenanceDetailPage` antes de chamar esta mutation, mas é
+ * reforçada aqui também (achado baixo da auditoria de 2026-07-23: só existir
+ * no client não bloqueia uma chamada direta à API) — segunda camada, mesmo
+ * critério de "defesa em profundidade" já aplicado em outros módulos.
  */
 export function useUpdateMaintenanceRequest(id: string) {
   const queryClient = useQueryClient();
@@ -177,6 +180,11 @@ export function useUpdateMaintenanceRequest(id: string) {
   return useMutation({
     mutationFn: async (input: UpdateMaintenanceRequestInput): Promise<MaintenanceRequest> => {
       const { currentStatus, ...fields } = input;
+
+      if (input.status === 'agendado' && !input.scheduled_date) {
+        throw new Error('Para agendar, é obrigatório definir a data.');
+      }
+
       const payload: Record<string, unknown> = { ...fields, updated_by_user_id: user?.id ?? null };
 
       if (input.status === 'resolvido' && currentStatus !== 'resolvido') {
