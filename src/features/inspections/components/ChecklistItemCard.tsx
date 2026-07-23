@@ -25,6 +25,16 @@ interface ChecklistItemCardProps {
 
 const RESULTS_WITH_DETAILS: InspectionResult[] = ['nao_conforme', 'pendente'];
 
+// Achado de auditoria de segurança (severidade baixa): o bucket
+// `inspection-media` já valida tipo/tamanho no servidor (`allowed_mime_types`/
+// `file_size_limit`, ver 0035_inspections_storage.sql), mas o client não
+// replicava essa checagem antes do upload (diferente de
+// `SignaturesSection.tsx`, que já validava) — `accept="image/*"` é só dica
+// de UI, não barreira real. Adicionado por consistência/UX, mesmo critério
+// já aplicado no módulo de Documentos.
+const ALLOWED_PHOTO_MIME_TYPES = ['image/jpeg', 'image/png'];
+const MAX_PHOTO_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB, mesmo limite do bucket
+
 /**
  * Um item de checklist — tradução do card inline de `InspectionDetail.jsx`
  * (dentro do `.map` de `categoryItems`): resultado (grid de 4 botões),
@@ -60,6 +70,15 @@ export function ChecklistItemCard({ inspectionId, templateItem, itemResult, medi
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
+
+    if (!ALLOWED_PHOTO_MIME_TYPES.includes(file.type)) {
+      toast.error('Tipo de arquivo não permitido. Envie JPG ou PNG.');
+      return;
+    }
+    if (file.size > MAX_PHOTO_FILE_SIZE_BYTES) {
+      toast.error('Arquivo muito grande. O limite é 20MB.');
+      return;
+    }
 
     uploadMedia.mutate(
       { file, inspectionId, itemResultId: itemResult.id },
