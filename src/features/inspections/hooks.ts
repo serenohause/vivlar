@@ -28,6 +28,12 @@ function mediaSignedUrlQueryKey(path: string) {
   return ['inspection-media-signed-url', path] as const;
 }
 
+/** Invalida a lista geral de vistorias e a lista "por unidade" (prefixo — cobre qualquer unitId já em cache), usado sempre que uma vistoria é criada/atualizada/excluída. */
+function invalidateInspectionsLists(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: INSPECTIONS_QUERY_KEY });
+  queryClient.invalidateQueries({ queryKey: ['inspections-by-unit'] });
+}
+
 /** Lista de vistorias do tenant (RLS restringe a admin/comercial/administrativo), excluindo soft-deleted, mais recentes primeiro — fiel a `"-created_date"` de `Inspections.jsx`. */
 export function useInspections() {
   return useQuery({
@@ -42,6 +48,25 @@ export function useInspections() {
       if (error) throw error;
       return data;
     },
+  });
+}
+
+/** Vistorias de uma unidade específica — seção "Vistorias" de `UnitDetailPage`. */
+export function useInspectionsByUnit(unitId: string | undefined) {
+  return useQuery({
+    queryKey: ['inspections-by-unit', unitId ?? ''],
+    queryFn: async (): Promise<Inspection[]> => {
+      const { data, error } = await supabase
+        .from('inspections')
+        .select('*')
+        .eq('unit_id', unitId as string)
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: Boolean(unitId),
   });
 }
 
@@ -156,7 +181,7 @@ export function useCreateInspection() {
 
       return inspection;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: INSPECTIONS_QUERY_KEY }),
+    onSuccess: () => invalidateInspectionsLists(queryClient),
   });
 }
 
@@ -258,7 +283,7 @@ export function useUpdateItemResult(inspectionId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: itemResultsQueryKey(inspectionId) });
       queryClient.invalidateQueries({ queryKey: inspectionQueryKey(inspectionId) });
-      queryClient.invalidateQueries({ queryKey: INSPECTIONS_QUERY_KEY });
+      invalidateInspectionsLists(queryClient);
     },
   });
 }
@@ -499,7 +524,7 @@ export function useUpdateInspection(id: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: inspectionQueryKey(id) });
-      queryClient.invalidateQueries({ queryKey: INSPECTIONS_QUERY_KEY });
+      invalidateInspectionsLists(queryClient);
     },
   });
 }
@@ -525,7 +550,7 @@ export function useSoftDeleteInspection() {
     },
     onSuccess: (id) => {
       queryClient.invalidateQueries({ queryKey: inspectionQueryKey(id) });
-      queryClient.invalidateQueries({ queryKey: INSPECTIONS_QUERY_KEY });
+      invalidateInspectionsLists(queryClient);
     },
   });
 }

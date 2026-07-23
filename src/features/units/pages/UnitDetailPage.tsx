@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Building2, DollarSign, Download, Edit2, FileText, Home, Plus } from 'lucide-react';
+import { ArrowLeft, Building2, ClipboardCheck, DollarSign, Download, Edit2, FileText, Home, Plus } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,8 @@ import { DOC_TYPE_LABELS } from '@/features/documents/constants';
 import { useDocumentsByUnit, getDocumentSignedUrl } from '@/features/documents/hooks';
 import { CreateFinanceAccountDialog } from '@/features/finance/components/CreateFinanceAccountDialog';
 import { useFinanceAccountsByUnit } from '@/features/finance/hooks';
+import { InspectionStatusBadge } from '@/features/inspections/components/InspectionStatusBadge';
+import { useInspectionsByUnit } from '@/features/inspections/hooks';
 import { useProject, useProjects } from '@/features/projects/hooks';
 import { UnitAdminStatusPipeline } from '@/features/units/components/UnitAdminStatusPipeline';
 import { UnitEditDialog } from '@/features/units/components/UnitEditDialog';
@@ -23,20 +25,17 @@ import { pageUrl } from '@/lib/page-url';
 
 /**
  * Tradução simplificada de `original-project/src/pages/UnitDetail.jsx` —
- * escopo combinado com o usuário: sem as abas de Documentos, Vistorias e
- * Atividades (dependem de `documents`/`inspections`/`activities`, módulos
- * futuros), sem o card de "Negociação" (depende de `deals`, CRM futuro — a
- * unidade já linka para o negócio via `DealDetailPage`, não o contrário) e
- * sem `UnitAlerts` (a versão original cruza dados de módulos que ainda não
- * existem — ver relatório final). O que sobra: os campos próprios da
- * unidade (informações básicas + simulação MCMV pública), o fluxo
- * administrativo MCMV (`UnitAdminStatusPipeline`) e o card "Financeiro"
- * (link para a carteira financeira da unidade, ou botão para criar uma —
- * ver `CreateFinanceAccountDialog`, `features/finance/hooks.ts`). O card
- * "Documentos" (módulo `features/documents`, fechado numa leva posterior)
- * é só listagem/upload — sem a lógica de checklist de documentos
- * obrigatórios por `admin_status` do `DocumentChecklist.jsx` original, que
- * continua fora de escopo (ver `docs/ARCHITECTURE.md`).
+ * escopo combinado com o usuário: sem a aba de Atividades (depende de
+ * `activities`/CRM, já existe mas não foi religada aqui ainda), sem o card
+ * de "Negociação" (depende de `deals`, CRM — a unidade já linka para o
+ * negócio via `DealDetailPage`, não o contrário) e sem `UnitAlerts` (a
+ * versão original cruza dados de vários módulos — ver relatório final). O
+ * que sobra: os campos próprios da unidade (informações básicas +
+ * simulação MCMV pública), o fluxo administrativo MCMV
+ * (`UnitAdminStatusPipeline`) e os cards "Financeiro"
+ * (`CreateFinanceAccountDialog`), "Documentos" (fechado no módulo 7) e
+ * "Vistorias" (fechado no módulo 8 — lista simples com link para
+ * `InspectionDetailPage`, sem duplicar a lógica de checklist ali).
  */
 export function UnitDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -46,6 +45,7 @@ export function UnitDetailPage() {
   const { data: projects } = useProjects();
   const { data: financeAccounts } = useFinanceAccountsByUnit(id);
   const { data: documents } = useDocumentsByUnit(id);
+  const { data: inspections } = useInspectionsByUnit(id);
 
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showCreateFinanceDialog, setShowCreateFinanceDialog] = useState(false);
@@ -261,6 +261,52 @@ export function UnitDetailPage() {
                     )}
                   </div>
                 </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Vistorias */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-lg">Vistorias</CardTitle>
+          <Link to={`${pageUrl('CreateInspection')}?unit=${unit.id}`}>
+            <Button size="sm" variant="outline">
+              <Plus className="mr-1 h-4 w-4" />
+              Nova Vistoria
+            </Button>
+          </Link>
+        </CardHeader>
+        <CardContent>
+          {!inspections || inspections.length === 0 ? (
+            <div className="py-6 text-center text-muted-foreground">
+              <ClipboardCheck className="mx-auto mb-2 h-10 w-10 text-muted-foreground/40" />
+              <p className="text-sm">Nenhuma vistoria registrada para esta unidade.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {inspections.map((inspection) => (
+                <Link
+                  key={inspection.id}
+                  to={`${pageUrl('Inspections')}/${inspection.id}`}
+                  className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted"
+                >
+                  <div className="flex items-center gap-3">
+                    <ClipboardCheck className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {inspection.inspection_date
+                          ? new Date(inspection.inspection_date).toLocaleDateString('pt-BR')
+                          : 'Sem data'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {inspection.score_conformity_percent.toFixed(0)}% de conformidade
+                      </p>
+                    </div>
+                  </div>
+                  <InspectionStatusBadge status={inspection.status} />
+                </Link>
               ))}
             </div>
           )}
