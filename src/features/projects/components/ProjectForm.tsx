@@ -11,9 +11,11 @@ import { PROJECT_STATUS_OPTIONS } from '@/features/projects/constants';
 import { projectFormSchema, type ProjectFormInput, type ProjectMutationPayload } from '@/features/projects/schemas';
 import type { Project } from '@/features/projects/types';
 
-type ProjectFormState = Omit<ProjectFormInput, 'total_units' | 'is_public'> & {
+type ProjectFormState = Omit<ProjectFormInput, 'total_units' | 'is_public' | 'total_construction_cost' | 'total_indirect_costs'> & {
   total_units: string;
   is_public: boolean;
+  total_construction_cost: string;
+  total_indirect_costs: string;
 };
 
 const EMPTY_FORM_STATE: ProjectFormState = {
@@ -26,6 +28,8 @@ const EMPTY_FORM_STATE: ProjectFormState = {
   notes: '',
   slug: '',
   is_public: false,
+  total_construction_cost: '0',
+  total_indirect_costs: '0',
 };
 
 function stateFromProject(project?: Project): ProjectFormState {
@@ -41,6 +45,8 @@ function stateFromProject(project?: Project): ProjectFormState {
     notes: project.notes ?? '',
     slug: project.slug ?? '',
     is_public: project.is_public ?? false,
+    total_construction_cost: String(project.total_construction_cost ?? 0),
+    total_indirect_costs: String(project.total_indirect_costs ?? 0),
   };
 }
 
@@ -72,6 +78,15 @@ interface ProjectFormProps {
  * de `slug`/`is_public` (os únicos dois que o dialog original edita — ver
  * comentário em `types.ts`). Sem `broker_responsavel_id` (fora de escopo,
  * depende do módulo de corretores/CRM, ainda não existe).
+ *
+ * `total_construction_cost`/`total_indirect_costs` (Resultado Operacional):
+ * no original esses dois campos são editados em cards dedicados dentro da
+ * aba "Resultado Operacional" do projeto (`CustoObra.jsx`/`CustosIndiretos.jsx`,
+ * salvos individualmente ao sair do campo), não neste dialog. Aqui optamos
+ * por trazê-los para o formulário de criação/edição — decisão explícita do
+ * módulo 10 (Investidores), que precisa desses valores para o cálculo do
+ * Resultado Operacional e ainda não tem uma aba própria de projeto para
+ * hospedar os cards originais.
  */
 export function ProjectForm({ project, onSubmit, isSubmitting, submitLabel, onCancel }: ProjectFormProps) {
   const [formData, setFormData] = useState<ProjectFormState>(() => stateFromProject(project));
@@ -101,6 +116,8 @@ export function ProjectForm({ project, onSubmit, isSubmitting, submitLabel, onCa
       notes: nullifyEmpty(parsed.data.notes),
       slug: nullifyEmpty(parsed.data.slug),
       is_public: parsed.data.is_public,
+      total_construction_cost: parsed.data.total_construction_cost,
+      total_indirect_costs: parsed.data.total_indirect_costs,
     });
   }
 
@@ -162,6 +179,34 @@ export function ProjectForm({ project, onSubmit, isSubmitting, submitLabel, onCa
           placeholder="Observações sobre o projeto..."
           rows={3}
         />
+      </div>
+
+      {/* Resultado Operacional */}
+      <div className="border-t pt-4">
+        <p className="mb-3 text-sm font-semibold text-foreground">Resultado Operacional</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Custo Total da Obra</Label>
+            <Input
+              type="number"
+              value={formData.total_construction_cost}
+              onChange={(e) => setField('total_construction_cost', e.target.value)}
+              placeholder="0,00"
+            />
+          </div>
+          <div>
+            <Label>Custos Indiretos</Label>
+            <Input
+              type="number"
+              value={formData.total_indirect_costs}
+              onChange={(e) => setField('total_indirect_costs', e.target.value)}
+              placeholder="0,00"
+            />
+          </div>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Valores digitados manualmente, usados no cálculo do Resultado Operacional (Dashboard de Investidores).
+        </p>
       </div>
 
       {/* Espelho de Vendas */}

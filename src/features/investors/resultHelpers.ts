@@ -1,6 +1,7 @@
 import type { Commission } from '@/features/commissions/types';
 import type { Deal } from '@/features/deals/types';
 import type { InvestmentContribution, InvestmentReturn } from '@/features/investors/types';
+import type { Project } from '@/features/projects/types';
 
 /**
  * Tradução de `calculateProjectResults`
@@ -22,19 +23,16 @@ export interface ProjectResults {
 }
 
 /**
- * ACHADO (limitação conhecida, não resolvida nesta tarefa — é só frontend):
- * o original lê `total_construction_cost`/`total_indirect_costs` de
- * `projects` para compor `totalCosts`. Essas duas colunas NÃO existem no
- * schema desta plataforma nova — `supabase/migrations/0007_projects.sql`
- * documenta a omissão como decisão explícita ("Resultado Operacional...
- * módulo futuro", tomada antes deste módulo 10 existir). Sem alterar
- * schema aqui (fora de escopo desta tarefa), os dois ficam fixos em 0 — o
- * "Resultado Líquido"/"Margem" exibidos no Dashboard de Investidores
- * refletem só receita menos custos de venda (comissões), SEM o custo de
- * obra/indiretos, então ficam otimistas em relação ao original até uma
- * migration futura adicionar essas colunas a `projects`.
+ * `total_construction_cost`/`total_indirect_costs` vêm de `projects`
+ * (`supabase/migrations/0046_project_operational_result_costs.sql`),
+ * preenchidos manualmente pela equipe em `ProjectForm` — mesma origem que
+ * o original (`resultadoHelpers.jsx`, linhas 24-28).
  */
-export function calculateProjectResults(deals: Deal[], commissions: Commission[]): ProjectResults {
+export function calculateProjectResults(
+  deals: Deal[],
+  commissions: Commission[],
+  project: Pick<Project, 'total_construction_cost' | 'total_indirect_costs'>
+): ProjectResults {
   const soldDeals = deals.filter((deal) => deal.sales_stage === 'vendido' && deal.final_sale_value != null);
   const receivedRevenue = soldDeals.reduce((sum, deal) => sum + (deal.final_sale_value ?? 0), 0);
   const grossVGV = receivedRevenue;
@@ -43,9 +41,8 @@ export function calculateProjectResults(deals: Deal[], commissions: Commission[]
 
   const netVGV = grossVGV - salesCosts;
 
-  // Ver comentário acima do ACHADO — colunas não existem no schema atual.
-  const totalConstructionCost = 0;
-  const totalIndirectCosts = 0;
+  const totalConstructionCost = project.total_construction_cost ?? 0;
+  const totalIndirectCosts = project.total_indirect_costs ?? 0;
   const totalCosts = totalConstructionCost + totalIndirectCosts;
 
   const grossResult = netVGV - totalCosts;

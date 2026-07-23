@@ -44,6 +44,16 @@ export interface Project {
   reserva_horas: number;
   whatsapp_principal: string | null;
 
+  /**
+   * Custo total da obra e custos indiretos do projeto — digitados
+   * manualmente pela equipe (`supabase/migrations/0046_project_operational_result_costs.sql`),
+   * `not null default 0`. Usados por `calculateProjectResults`
+   * (`src/features/investors/resultHelpers.ts`) para compor o Resultado
+   * Operacional do Dashboard de Investidores; editáveis em `ProjectForm`.
+   */
+  total_construction_cost: number;
+  total_indirect_costs: number;
+
   is_deleted: boolean;
   deleted_at: string | null;
   deleted_by_user_id: string | null;

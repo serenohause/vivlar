@@ -21,6 +21,14 @@ export const projectFormSchema = z.object({
   // comentário em `types.ts`).
   slug: z.string().trim().optional(),
   is_public: z.boolean(),
+
+  // Resultado Operacional — `total_construction_cost`/`total_indirect_costs`
+  // são `not null default 0` no banco (0046_project_operational_result_costs.sql),
+  // digitados manualmente pela equipe. Sem `.optional()`: o campo do
+  // formulário sempre manda uma string (default '0'), que `z.coerce.number()`
+  // resolve para 0 quando vazia — `nonnegative()` já aceita 0.
+  total_construction_cost: z.coerce.number().nonnegative('O custo da obra não pode ser negativo.'),
+  total_indirect_costs: z.coerce.number().nonnegative('Os custos indiretos não podem ser negativos.'),
 });
 
 export type ProjectFormInput = z.infer<typeof projectFormSchema>;
@@ -41,4 +49,6 @@ export interface ProjectMutationPayload {
   notes: string | null;
   slug: string | null;
   is_public: boolean;
+  total_construction_cost: number;
+  total_indirect_costs: number;
 }

@@ -22,13 +22,6 @@ import { useProjects } from '@/features/projects/hooks';
  * automática (`migrateInvestmentReturns`): não existe dado legado nesta
  * plataforma nova (`investment_returns.return_type` é `not null` desde o
  * primeiro registro).
- *
- * LIMITAÇÃO CONHECIDA (ver `calculateProjectResults`, `resultHelpers.ts`):
- * `total_construction_cost`/`total_indirect_costs` não existem em `projects`
- * neste schema (decisão tomada em `0007_projects.sql`, antes deste módulo
- * existir) — "Custos"/"Lucro Líquido"/"Margem" abaixo consideram só custos
- * de venda (comissões), nunca o custo de obra, então ficam otimistas em
- * relação ao que o original mostrava.
  */
 export function InvestorDashboardPage() {
   const { data: projects, isLoading: isLoadingProjects, isError: isErrorProjects, refetch: refetchProjects } = useProjects();
@@ -71,7 +64,7 @@ export function InvestorDashboardPage() {
       activeProjects.map((project) => {
         const projectDeals = allDeals.filter((d) => d.project_id === project.id);
         const projectCommissions = allCommissions.filter((c) => c.project_id === project.id);
-        return { ...project, results: calculateProjectResults(projectDeals, projectCommissions) };
+        return { ...project, results: calculateProjectResults(projectDeals, projectCommissions, project) };
       }),
     [activeProjects, allDeals, allCommissions]
   );
