@@ -146,6 +146,14 @@ combina com a descrição delas — não é obrigatório digitar o comando.
 
 ## [projeto] Domínio
 
+> **Sessão nova neste projeto? Leia `docs/STATUS.md` primeiro** — resume
+> onde o projeto está, o processo de construção módulo a módulo, e um
+> glossário do domínio (incorporação residencial/MCMV) pra quem não é da
+> área. Regra de processo em vigor (pedido do usuário, 2026-07-23): antes
+> de construir um módulo novo, explicar em linguagem simples o que ele faz
+> e as regras de negócio envolvidas — não assumir conhecimento prévio do
+> domínio.
+
 _Preenchido pelo `/start-project` na primeira etapa, a partir da clonagem
 fiel do projeto Base44 em `original-project/`. Ver também
 `docs/ARCHITECTURE.md` e `docs/DOMAIN_MAP.md` para o detalhamento completo._

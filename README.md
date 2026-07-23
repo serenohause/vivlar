@@ -25,11 +25,9 @@ Outros scripts: `npm run build`, `npm run typecheck`, `npm run lint`, `npm run p
 
 **https://vivlar.vercel.app** — Vercel (deploy automático a cada push em `main`) + Supabase (projeto `vivlar`, região `sa-east-1`).
 
-Construção por módulos, cada um deployado separadamente:
-- ✅ Módulo 1 — Auth + multitenancy (login, signup, criação de tenant, RLS)
-- ✅ Módulo 2 — Dashboard (shell/sidebar fiel ao original + página mínima)
-- ✅ Módulo 3 — Catálogo (terrenos, projetos, unidades) + bloco de KPIs no Dashboard
-- ⏳ Demais módulos (CRM, financeiro, comissões, investidores, vistorias/manutenção, documentos) via `/new-feature`
+Construído por módulos, cada um deployado separadamente. Status atual e
+lista completa: **`docs/STATUS.md`** (é o que fica atualizado — não
+duplicar a lista aqui).
 
 ---
 
