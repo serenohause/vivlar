@@ -59,8 +59,10 @@
 --    do cliente, so equipe interna mexe em manutencao).
 -- 3. Usuario com tenant_role in ('admin','comercial','administrativo') do
 --    tenant certo consegue criar um chamado, fazer upload no bucket
---    `maintenance-photos` e ATUALIZAR o chamado (incl. soft-delete via
---    is_deleted).
+--    `maintenance-photos` e ATUALIZAR o chamado (update normal, ex: status/
+--    notas). Soft-delete (is_deleted = true) restrito a admin a partir da
+--    migration 0040 -- coberto em detalhe no teste dedicado
+--    supabase/tests/0040_maintenance_soft_delete_isolation.sql, nao aqui.
 -- 4. Usuario sem tenant_id no claim (0 vinculos ativos) nao ve nenhuma linha
 --    em `maintenance_requests` nem em storage.objects.
 -- 5. WITH CHECK bloqueia INSERT cross-tenant (payload malicioso tentando
@@ -306,9 +308,11 @@ reset role;
 -- ---------------------------------------------------------------------
 -- TESTE 5: 'administrativo' do tenant A consegue criar um chamado, fazer
 -- upload em storage.objects (prova positiva de insert/select) e ATUALIZAR o
--- chamado (incl. soft-delete via is_deleted). WITH CHECK bloqueia insert
+-- chamado (update normal -- status/notas). WITH CHECK bloqueia insert
 -- cross-tenant (maintenance_requests e storage.objects). USING bloqueia
--- UPDATE cross-tenant.
+-- UPDATE cross-tenant. Soft-delete (is_deleted) NAO e testado aqui --
+-- restrito a admin a partir de 0040, coberto em
+-- supabase/tests/0040_maintenance_soft_delete_isolation.sql.
 -- ---------------------------------------------------------------------
 
 select set_config(
@@ -340,17 +344,13 @@ begin
     raise exception 'FALHOU (5b): administrativo nao consegue ver alguma das linhas que acabou de criar';
   end if;
 
-  -- UPDATE deve funcionar, incl. soft-delete via is_deleted.
+  -- UPDATE normal deve funcionar (status/notas). Soft-delete (is_deleted)
+  -- restrito a admin a partir de 0040 -- testado em detalhe em
+  -- 0040_maintenance_soft_delete_isolation.sql, nao aqui.
   update public.maintenance_requests set operator_notes = 'atualizado', status = 'em_andamento' where id = v_request_id;
 
   if not exists (select 1 from public.maintenance_requests where id = v_request_id and operator_notes = 'atualizado' and status = 'em_andamento') then
     raise exception 'FALHOU (5c): administrativo deveria conseguir atualizar maintenance_requests';
-  end if;
-
-  update public.maintenance_requests set is_deleted = true, deleted_at = now(), deleted_by_user_id = 'f1000000-0000-0000-0000-000000000006' where id = v_request_id;
-
-  if not exists (select 1 from public.maintenance_requests where id = v_request_id and is_deleted = true) then
-    raise exception 'FALHOU (5d): administrativo deveria conseguir fazer soft-delete (UPDATE is_deleted) em maintenance_requests';
   end if;
 end $$;
 
