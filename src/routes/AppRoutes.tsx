@@ -20,6 +20,8 @@ import { FinanceAccountDetailPage } from '@/features/finance/pages/FinanceAccoun
 import { FinanceDashboardPage } from '@/features/finance/pages/FinanceDashboardPage';
 import { FinanceListPage } from '@/features/finance/pages/FinanceListPage';
 import { InadimplenciaManagerPage } from '@/features/finance/pages/InadimplenciaManagerPage';
+import { TemplateDetailPage } from '@/features/inspection-templates/pages/TemplateDetailPage';
+import { TemplatesListPage } from '@/features/inspection-templates/pages/TemplatesListPage';
 import { ProjectDetailPage } from '@/features/projects/pages/ProjectDetailPage';
 import { ProjectFormPage } from '@/features/projects/pages/ProjectFormPage';
 import { ProjectsListPage } from '@/features/projects/pages/ProjectsListPage';
@@ -73,11 +75,19 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 // — não existe `Commission.create(...)` em lugar nenhum do original
 // (`src/pages/Commissions.jsx`/`CommissionDetail.jsx`), só edição
 // (ajuste/pagamento/agendamento/cancelamento/finalização) da comissão já
-// existente. Por fim, "Documents" (Documentos: gestão documental MCMV, com
+// existente. Depois "Documents" (Documentos: gestão documental MCMV, com
 // upload real via Supabase Storage) — só "/documents" (lista), sem
 // sub-rota de detalhe (o original só tem lista + dialog de criar/editar,
 // mesma convenção de "Brokers" antes de ganhar detalhe — aqui optamos por
-// não criar um detalhe que o original também não tem).
+// não criar um detalhe que o original também não tem). E agora "Templates"
+// (Templates de Checklist de Vistoria: lista + detalhe com abas
+// Itens/Configurações) — mesma convenção "/templates" (lista) +
+// "/templates/:id" (detalhe) do resto do app, sem "/templates/novo": criar
+// template é um dialog dentro da própria lista (fiel ao
+// `showCreateModal` de `Templates.jsx`), mesma escolha já feita para
+// "CRM"/"Finance" acima. A execução de vistorias em si
+// (`Inspections`/`CreateInspection`/`InspectionDetail`) continua "em
+// construção" — fora do escopo desta leva, só templates de checklist.
 const PAGES_WITH_REAL_ROUTE = [
   'Terrains',
   'Projects',
@@ -91,6 +101,7 @@ const PAGES_WITH_REAL_ROUTE = [
   'InadimplenciaManager',
   'Commissions',
   'Documents',
+  'Templates',
 ];
 const COMING_SOON_PAGE_NAMES = getAllNavPageNames().filter(
   (name) => name !== 'Dashboard' && !PAGES_WITH_REAL_ROUTE.includes(name)
@@ -143,6 +154,9 @@ export function AppRoutes() {
           <Route path={`${pageUrl('Commissions')}/:id`} element={<CommissionDetailPage />} />
 
           <Route path={pageUrl('Documents')} element={<DocumentsListPage />} />
+
+          <Route path={pageUrl('Templates')} element={<TemplatesListPage />} />
+          <Route path={`${pageUrl('Templates')}/:id`} element={<TemplateDetailPage />} />
 
           {COMING_SOON_PAGE_NAMES.map((pageName) => (
             <Route key={pageName} path={pageUrl(pageName)} element={<ComingSoonPage pageName={pageName} />} />
