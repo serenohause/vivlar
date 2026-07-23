@@ -314,6 +314,21 @@ Achados médios/baixos aceitos como risco por ora, por módulo (achados
 críticos/altos são sempre corrigidos antes do deploy, não aceitos —
 ver seção acima para o único caso alto até agora):
 
+**Transversal — referência cross-tenant via FK não validada** (achado da
+auditoria do módulo 8, mas não específico dele)
+- As policies de INSERT em toda tabela do projeto checam
+  `tenant_id = claim` da própria linha, mas não que as FKs referenciadas
+  (`unit_id`, `project_id`, `deal_id` etc.) pertencem ao mesmo tenant. Um
+  usuário autorizado do tenant A que adivinhe/enumere um UUID de outro
+  tenant (B) poderia, em tese, inserir uma linha com `tenant_id = A`
+  referenciando uma entidade de B. Não vaza leitura (RLS de SELECT
+  continua filtrando por `tenant_id` da própria linha) — é uma falha de
+  integridade referencial, não de confidencialidade. Presente
+  potencialmente em várias tabelas com FK, não só em Vistorias. Aceito
+  por ora (severidade baixa/média, exige adivinhar UUID de outro
+  tenant); revisar com o `rls-guardian` se vale a pena um trigger/CHECK
+  validando `tenant_id` cruzado nas FKs mais sensíveis.
+
 **Módulo 1 — Auth** (auditoria de 2026-07-20)
 - **Enumeração de e-mail no signup**: a tela informa explicitamente
   "este e-mail já está cadastrado" quando o e-mail já existe
