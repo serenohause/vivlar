@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Building2, ClipboardCheck, DollarSign, Download, Edit2, FileText, Home, Plus } from 'lucide-react';
+import { ArrowLeft, Building2, ClipboardCheck, DollarSign, Download, Edit2, FileText, Home, Plus, Wrench } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
 import { Label } from '@/components/ui/label';
 import { LoadingInline } from '@/components/ui/loading-inline';
+import { useClient } from '@/features/clients/hooks';
+import { useDeals } from '@/features/deals/hooks';
 import { DocumentFormDialog } from '@/features/documents/components/DocumentFormDialog';
 import { DocumentStatusBadge } from '@/features/documents/components/DocumentStatusBadge';
 import { DOC_TYPE_LABELS } from '@/features/documents/constants';
@@ -15,6 +17,9 @@ import { CreateFinanceAccountDialog } from '@/features/finance/components/Create
 import { useFinanceAccountsByUnit } from '@/features/finance/hooks';
 import { InspectionStatusBadge } from '@/features/inspections/components/InspectionStatusBadge';
 import { useInspectionsByUnit } from '@/features/inspections/hooks';
+import { MaintenanceFormDialog } from '@/features/maintenance/components/MaintenanceFormDialog';
+import { MaintenanceStatusBadge } from '@/features/maintenance/components/MaintenanceStatusBadge';
+import { useMaintenanceRequestsByUnit } from '@/features/maintenance/hooks';
 import { useProject, useProjects } from '@/features/projects/hooks';
 import { UnitAdminStatusPipeline } from '@/features/units/components/UnitAdminStatusPipeline';
 import { UnitEditDialog } from '@/features/units/components/UnitEditDialog';
@@ -35,7 +40,12 @@ import { pageUrl } from '@/lib/page-url';
  * (`UnitAdminStatusPipeline`) e os cards "Financeiro"
  * (`CreateFinanceAccountDialog`), "Documentos" (fechado no módulo 7) e
  * "Vistorias" (fechado no módulo 8 — lista simples com link para
- * `InspectionDetailPage`, sem duplicar a lógica de checklist ali).
+ * `InspectionDetailPage`, sem duplicar a lógica de checklist ali) e
+ * "Manutenções" (fechado no módulo 9 — lista simples com link para
+ * `MaintenanceDetailPage`, mesmo padrão da seção "Vistorias"; a criação
+ * exige um cliente com negócio `vendido` para esta unidade, resolvido aqui
+ * a partir de `useDeals()` e travado no `MaintenanceFormDialog` via
+ * `lockedContext`, sem o usuário escolher cliente/unidade de novo).
  */
 export function UnitDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -46,10 +56,21 @@ export function UnitDetailPage() {
   const { data: financeAccounts } = useFinanceAccountsByUnit(id);
   const { data: documents } = useDocumentsByUnit(id);
   const { data: inspections } = useInspectionsByUnit(id);
+  const { data: maintenanceRequests } = useMaintenanceRequestsByUnit(id);
+  const { data: deals } = useDeals();
+
+  // Negócio `vendido` (não excluído) para esta unidade, se existir -- só
+  // esse cliente pode ter um chamado de manutenção aberto em seu nome
+  // (fiel a `clientUnits`, `AdminMaintenance.jsx`). Chamado com `unit?.id`
+  // (não `unit.id`) para não quebrar a ordem dos hooks: `unit` só fica
+  // disponível depois dos `if` de loading/erro/não-encontrado abaixo.
+  const soldDeal = deals?.find((deal) => deal.unit_id === unit?.id && deal.sales_stage === 'vendido' && !deal.is_deleted) ?? null;
+  const { data: soldClient } = useClient(soldDeal?.client_id);
 
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showCreateFinanceDialog, setShowCreateFinanceDialog] = useState(false);
   const [showDocumentDialog, setShowDocumentDialog] = useState(false);
+  const [showMaintenanceDialog, setShowMaintenanceDialog] = useState(false);
 
   if (isLoading) {
     return <LoadingInline />;
@@ -313,6 +334,50 @@ export function UnitDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Manutenções */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-lg">Manutenções</CardTitle>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowMaintenanceDialog(true)}
+            disabled={!soldDeal}
+            title={soldDeal ? undefined : 'Só é possível abrir um chamado para uma unidade com negócio vendido'}
+          >
+            <Plus className="mr-1 h-4 w-4" />
+            Novo Chamado
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {!maintenanceRequests || maintenanceRequests.length === 0 ? (
+            <div className="py-6 text-center text-muted-foreground">
+              <Wrench className="mx-auto mb-2 h-10 w-10 text-muted-foreground/40" />
+              <p className="text-sm">Nenhum chamado de manutenção registrado para esta unidade.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {maintenanceRequests.map((request) => (
+                <Link
+                  key={request.id}
+                  to={`${pageUrl('AdminMaintenance')}/${request.id}`}
+                  className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted"
+                >
+                  <div className="flex items-center gap-3">
+                    <Wrench className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{request.title}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(request.opened_at).toLocaleDateString('pt-BR')}</p>
+                    </div>
+                  </div>
+                  <MaintenanceStatusBadge status={request.status} />
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Simulação MCMV Pública */}
       {hasSimulation && (
         <Card className="border-0 shadow-sm">
@@ -374,6 +439,19 @@ export function UnitDetailPage() {
           label: `Vinculado à unidade ${unit.sku}`,
         }}
       />
+
+      {soldDeal && (
+        <MaintenanceFormDialog
+          open={showMaintenanceDialog}
+          onOpenChange={setShowMaintenanceDialog}
+          lockedContext={{
+            project_id: unit.project_id,
+            unit_id: unit.id,
+            client_id: soldDeal.client_id,
+            label: `${unit.sku} — ${soldClient?.name ?? 'Cliente'}`,
+          }}
+        />
+      )}
     </div>
   );
 }

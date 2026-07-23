@@ -25,6 +25,8 @@ import { TemplatesListPage } from '@/features/inspection-templates/pages/Templat
 import { CreateInspectionPage } from '@/features/inspections/pages/CreateInspectionPage';
 import { InspectionDetailPage } from '@/features/inspections/pages/InspectionDetailPage';
 import { InspectionsListPage } from '@/features/inspections/pages/InspectionsListPage';
+import { MaintenanceDetailPage } from '@/features/maintenance/pages/MaintenanceDetailPage';
+import { MaintenanceListPage } from '@/features/maintenance/pages/MaintenanceListPage';
 import { ProjectDetailPage } from '@/features/projects/pages/ProjectDetailPage';
 import { ProjectFormPage } from '@/features/projects/pages/ProjectFormPage';
 import { ProjectsListPage } from '@/features/projects/pages/ProjectsListPage';
@@ -91,7 +93,14 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 // "CRM"/"Finance" acima. E agora a execução de vistorias em si:
 // "Inspections" (lista, "/inspections") e "InspectionDetail" (checklist
 // completo, fotos e assinaturas, "/inspections/:id") seguem a mesma
-// convenção `/<slug>` + `/<slug>/:id` do resto do app. "CreateInspection"
+// convenção `/<slug>` + `/<slug>/:id` do resto do app. E agora "AdminMaintenance"
+// (Manutenção pós-entrega: lista com KPIs/filtros/dialog de criação,
+// "/admin-maintenance") + detalhe do chamado ("/admin-maintenance/:id") —
+// mesma convenção `/<slug>` + `/<slug>/:id`, nome de página herdado 1:1 do
+// original (`AdminMaintenance.jsx`, já usado pelo item "Manutenções" da
+// sidebar em `features/dashboard/navigation.ts`) em vez de um "Maintenance"
+// mais curto, para não divergir da URL que o restante do app (breadcrumbs,
+// nav) já espera. "CreateInspection"
 // foge dessa convenção de propósito: diferente de "Terrains"/"Projects"/
 // etc (onde a criação é sempre "/<slug>/novo", um sub-recurso da própria
 // entidade), `CreateInspection` já era uma PÁGINA PRÓPRIA no original
@@ -121,6 +130,7 @@ const PAGES_WITH_REAL_ROUTE = [
   'Templates',
   'Inspections',
   'CreateInspection',
+  'AdminMaintenance',
 ];
 const COMING_SOON_PAGE_NAMES = getAllNavPageNames().filter(
   (name) => name !== 'Dashboard' && !PAGES_WITH_REAL_ROUTE.includes(name)
@@ -180,6 +190,9 @@ export function AppRoutes() {
           <Route path={pageUrl('Inspections')} element={<InspectionsListPage />} />
           <Route path={pageUrl('CreateInspection')} element={<CreateInspectionPage />} />
           <Route path={`${pageUrl('Inspections')}/:id`} element={<InspectionDetailPage />} />
+
+          <Route path={pageUrl('AdminMaintenance')} element={<MaintenanceListPage />} />
+          <Route path={`${pageUrl('AdminMaintenance')}/:id`} element={<MaintenanceDetailPage />} />
 
           {COMING_SOON_PAGE_NAMES.map((pageName) => (
             <Route key={pageName} path={pageUrl(pageName)} element={<ComingSoonPage pageName={pageName} />} />
