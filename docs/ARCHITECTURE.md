@@ -253,6 +253,43 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   do original, que reaproveita o mesmo formulário de criação inteiro
   para edição.
 
+**Módulo 8 — Vistorias (Pós-Venda)**
+- Segundo bucket de Storage do projeto (`inspection-media`, privado,
+  aceita `image/jpeg`/`image/png`/`application/pdf`, até 20MB) — fotos
+  de item de checklist e o PDF da vistoria assinado pelo cliente
+  (assinatura do vistoriador não anexa arquivo, só um checkbox de
+  confirmação).
+- `src/components/unit/InspectionDashboard.jsx` e
+  `src/components/dashboard/InspectionsDashboard.jsx` do original **não
+  foram portados de propósito**: confirmado que são 100% locais
+  (`localStorage`, checklist hardcoded), nunca tocam nenhuma entidade
+  `Inspection*` do backend — órfãos no próprio original, não uma
+  simplificação nossa.
+- `inspection_item_results.due_date`/`resolved_at` não existem no
+  schema — lidos em condicionais defensivas no original, mas sem
+  nenhum `.create()`/`.update()` que os preencha (mesmo critério de
+  `commissions.paid_at`, módulo 6). Sem prazo de correção de pendência
+  implementado.
+- Sem geração de PDF da vistoria (`inspectionPdf.jsx` do original).
+- Sem auto-criação de "template padrão" na primeira visita à lista de
+  templates (comportamento de dado de demonstração do Base44
+  single-tenant, não faz sentido replicar num SaaS multitenant — cada
+  tenant cria seu primeiro template explicitamente).
+- Índice único parcial em `inspection_item_results` (1 resultado ativo
+  por item por vistoria) fecha uma classe de bug de duplicação que o
+  original só contornava via `normalizeResults` (dedupe reativo no
+  frontend) — a UI nova nem precisa dessa rotina.
+- **Fechado nesta leva**: seção "Vistorias" no detalhe da Unidade
+  (Catálogo, módulo 3) — lista simples com link para o detalhe
+  completo, sem duplicar a lógica de checklist ali.
+- Sem bloco de vistorias no Dashboard Executivo: mesmo padrão de código
+  morto já visto em `DashboardStats`/comissões — `Dashboard.jsx`
+  original importa `inspections` de `useDashboardData` mas nunca
+  renderiza.
+- Vistoriador exibido pelo e-mail do usuário logado (sem diretório de
+  usuários do tenant consultável pelo frontend ainda — mesma lacuna já
+  registrada no módulo 1, nome de exibição).
+
 ## Achados de segurança corrigidos (não aceitos como risco)
 
 - **Módulo 6 — Comissões** (auditoria de 2026-07-21): achado **alto**
@@ -328,6 +365,7 @@ ver seção acima para o único caso alto até agora):
 - [x] Módulo 4 (CRM: clientes, corretores, imobiliárias, kanban de negócios + bloco de funil no dashboard) implementado, auditado e em produção
 - [x] Módulo 5 (Financeiro: contas a receber, dashboard financeiro, inadimplência + bloco de KPIs executivos no dashboard) implementado, auditado e em produção
 - [x] Módulo 6 (Comissões: lista + detalhe com ajustes/pagamentos, criação automática ao vender fechando loop do CRM) implementado, auditado e em produção
-- [x] Módulo 7 (Documentos: upload real via Storage, fechando loops de Unidade e Negócio) implementado — https://vivlar.vercel.app
-- [ ] Demais módulos (investidores, vistorias/manutenção) via `/new-feature`
+- [x] Módulo 7 (Documentos: upload real via Storage, fechando loops de Unidade e Negócio) implementado, auditado e em produção
+- [x] Módulo 8 (Vistorias: templates de checklist, execução com fotos e assinaturas, fechando loop da Unidade) implementado — https://vivlar.vercel.app
+- [ ] Módulo 9 (Manutenção pós-entrega) e demais (investidores) via `/new-feature`
 - [ ] Auditoria de arquitetura geral rodada
