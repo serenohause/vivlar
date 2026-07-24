@@ -409,6 +409,24 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   `comercial`/`administrativo` também não conseguem editar uma linha já
   excluída (mas podem desfazer a exclusão, já que a regra travou quem
   marca `true`, não quem reverte).
+- **Módulo 10 — Investidores** (auditoria de 2026-07-23): achado **alto**
+  de `total_construction_cost`/`total_indirect_costs` (campos de
+  `projects` adicionados neste mesmo módulo) herdarem a policy geral de
+  INSERT/UPDATE de `projects` (`admin`/`comercial`/`administrativo`),
+  apesar de alimentarem diretamente o cálculo de quanto pagar a cada
+  investidor — deveriam seguir a mesma regra "só admin mexe em dinheiro
+  de terceiros" já aplicada ao resto do módulo. Corrigido com um trigger
+  `BEFORE INSERT OR UPDATE` em `projects`
+  (`supabase/migrations/0047_restrict_project_cost_fields_to_admin.sql`)
+  que bloqueia `comercial`/`administrativo` de gravar valor diferente de
+  zero nesses campos (INSERT) ou de alterá-los (UPDATE) — RLS declarativa
+  não resolve aqui porque a regra precisa comparar o valor antigo com o
+  novo, e nenhuma policy consegue ver as duas versões da linha ao mesmo
+  tempo. `comercial`/`administrativo` continuam editando os demais campos
+  de `projects` normalmente. Reforçado também na UI (campos desabilitados
+  no formulário de projeto para quem não é admin,
+  `ProjectForm.tsx`). Testado contra o banco remoto
+  (`supabase/tests/0047_project_cost_fields_isolation.sql`).
 
 ## Riscos aceitos (não corrigidos, decisão consciente do usuário)
 
@@ -499,5 +517,5 @@ auditoria do módulo 8, mas não específico dele)
 - [x] Módulo 7 (Documentos: upload real via Storage, fechando loops de Unidade e Negócio) implementado, auditado e em produção
 - [x] Módulo 8 (Vistorias: templates de checklist, execução com fotos e assinaturas, fechando loop da Unidade) implementado — https://vivlar.vercel.app
 - [x] Módulo 9 (Manutenção pós-entrega: lista + detalhe, upload de fotos, fechando loop da Unidade) implementado, auditado e em produção — https://vivlar.vercel.app
-- [x] Módulo 10 (Investidores: cadastro, vínculo a projetos, aportes, retornos, dashboard consolidado) implementado, aguardando auditoria e deploy
+- [x] Módulo 10 (Investidores: cadastro, vínculo a projetos, aportes, retornos, dashboard consolidado) implementado, auditado — aguardando deploy
 - [ ] Auditoria de arquitetura geral rodada

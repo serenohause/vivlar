@@ -33,7 +33,7 @@ região `sa-east-1`, ref `hppeqpmxupfghymkulne`)
 - ✅ Módulo 7 — Documentos (upload real de arquivo)
 - ✅ Módulo 8 — Vistorias (templates de checklist + execução com fotos/assinatura)
 - ✅ Módulo 9 — Manutenção pós-entrega (lista + detalhe, upload de fotos, só lado interno — sem portal do cliente ainda)
-- ⏳ Investidores (**próximo**)
+- ✅ Módulo 10 — Investidores (cadastro, vínculo a projetos, aportes, retornos, dashboard consolidado, só lado interno — sem portal do investidor ainda)
 
 ## Como o projeto é construído (processo, pra sessões novas entenderem)
 
