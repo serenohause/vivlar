@@ -538,6 +538,53 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   transversal já conhecido) — `LeadForm.jsx` cria uma a cada
   submissão no original, não portado.
 
+**Módulo 14 — Configurações**
+- **Convite de equipe reimaginado, não portado literalmente**: o
+  original convida via `base44.users.inviteUser` — mágica da própria
+  plataforma Base44, que cria a conta e manda e-mail, sem equivalente
+  no Supabase sem uma Edge Function (nenhuma existe no projeto ainda).
+  Decisão tomada com o usuário: convite por "lista de espera"
+  (`tenant_invites`) — admin registra e-mail+papel; quando a pessoa se
+  cadastra pelo signup normal, `accept_pending_invite()` reconhece o
+  convite pendente e a associa ao tenant certo, em vez do fluxo padrão
+  de "criar sua própria empresa". Fecha a lacuna documentada desde
+  `0002_rls_tenants_and_claim_hook.sql` ("o fluxo de aceitar convite
+  precisa de um mecanismo à parte... precisa existir antes de o
+  convite por e-mail ser implementado").
+- **Vínculo cliente↔usuário em 2 passos**: `tenant_invites` não tem
+  `client_id` (só e-mail) — quando o convite é pra papel `cliente`, o
+  vínculo com um `clients` só pode acontecer DEPOIS que a pessoa
+  aceitar e existir de verdade em `tenant_users`. O admin precisa
+  voltar na aba "Usuários" e usar "editar papel" pra completar o
+  vínculo. Fecha, ainda que em 2 passos manuais, o débito já apontado
+  nos módulos 1/4/11 ("sem convite de portal para o cliente ao
+  vender").
+- Sem seletor de tenant: se o mesmo e-mail tiver convite pendente em
+  mais de um tenant (raro), `accept_pending_invite()` aceita o mais
+  recente e ignora os outros — mesma simplicidade já aceita em
+  `create_tenant_with_admin` (`0005`), que também não resolve usuário
+  pertencendo a múltiplos tenants.
+- Abas "Notificações" e "Teams" do original ficaram de fora (decisão
+  já tomada) — a primeira linkava pra uma tela de preferências que
+  depende do módulo de Notificações (ainda não construído); a segunda
+  é integração com Microsoft Teams, fora de escopo desde o início do
+  projeto.
+- `doc_requirements`: sem formulário de "adicionar requisito" — o
+  original tem a mutation de criar definida mas nenhum controle de UI
+  a aciona em lugar nenhum (mutation morta no próprio original, mesmo
+  padrão de outros achados desse tipo já documentados). Só
+  exibição + exclusão (admin) foram portadas, fiel ao que de fato
+  funciona lá.
+- `support_tickets`: só o caso "solicitar exclusão de conta" — sem
+  tela de gestão pro admin (não existe no original também). RLS já
+  permite admin ver todos os tickets do tenant, esperando a tela.
+- Fluxo de aceite de convite não foi testado ponta a ponta contra um
+  ambiente real nesta sessão (criar convite → cadastrar com aquele
+  e-mail → confirmar entrada automática no tenant) — testado via SQL
+  isolado (`supabase/tests/0063_configuracoes_isolation.sql`), mas
+  recomendo uma passada manual pelo fluxo completo via navegador antes
+  de anunciar a feature pro time.
+
 ## Achados de segurança corrigidos (não aceitos como risco)
 
 - **Módulo 6 — Comissões** (auditoria de 2026-07-21): achado **alto**
@@ -776,4 +823,5 @@ auditoria do módulo 8, mas não específico dele)
 - [x] Módulo 11 (Portal do Cliente: minha unidade, financeiro + financiamento, manutenções com abertura/cancelamento de chamado) implementado, auditado e em produção — https://vivlar.vercel.app
 - [x] Módulo 12 (Portal do Investidor: dashboard pessoal, meus projetos com resultado operacional, meus aportes, meus retornos) implementado, auditado e em produção — https://vivlar.vercel.app
 - [x] Módulo 13 (Espelho de Vendas: site público por slug, captação de lead, reserva de unidade com trava atômica) implementado, auditado e em produção — https://vivlar.vercel.app
+- [x] Módulo 14 (Configurações: convite de equipe via lista de espera, vínculo cliente↔usuário, documentos obrigatórios por status, exclusão de conta) implementado, pendente de auditoria e deploy
 - [ ] Auditoria de arquitetura geral rodada
