@@ -55,6 +55,33 @@
     from { height: var(--radix-accordion-content-height); }
     to { height: 0; }
   }
+
+  /* Módulo 13 (Espelho de Vendas) — site público de vendas, fonte de
+     verdade `original-project/src/{pages/EspelhoVendas.jsx,
+     components/espelho/*.jsx}`. Identidade visual PRÓPRIA, deliberadamente
+     desacoplada da paleta neutra do app interno acima (`--color-brand` etc):
+     é a página pública de marketing/captação de lead, não uma tela do
+     sistema de gestão. Paleta extraída por grep de todo hex usado nos
+     componentes `espelho/*` (não há `prototypes/`/plano de design para este
+     módulo — o `original-project` é a fonte de verdade, ver CLAUDE.md,
+     seção Domínio). Tipografia: Google Fonts Fraunces (serifada, títulos) +
+     Manrope (texto), carregadas sob demanda só na rota `/e/:slug` (ver
+     `useEspelhoFonts` em `features/espelho-vendas/hooks.ts`), não
+     globalmente no `index.html` — nenhuma outra tela usa essas fontes. */
+  --color-espelho-bg: #fafafa;
+  --color-espelho-navy: #002e50;
+  --color-espelho-navy-dark: #001a2e;
+  --color-espelho-orange: #f96117;
+  --color-espelho-orange-dark: #e0550f;
+  --color-espelho-sand: #dfdbca;
+  --color-espelho-sand-light: #eae6d7;
+  --color-espelho-whatsapp: #25d366;
+  --color-espelho-gray: #8e8b82;
+  --color-espelho-error-bg: #fee2e2;
+  --color-espelho-error-text: #991b1b;
+
+  --font-espelho-serif: 'Fraunces', serif;
+  --font-espelho-sans: 'Manrope', sans-serif;
 }
 
 :root[data-theme="dark"],

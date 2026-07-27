@@ -19,6 +19,7 @@ import { Dashboard } from '@/features/dashboard/pages/Dashboard';
 import { CRMPage } from '@/features/deals/pages/CRMPage';
 import { DealDetailPage } from '@/features/deals/pages/DealDetailPage';
 import { DocumentsListPage } from '@/features/documents/pages/DocumentsListPage';
+import { EspelhoVendasPage } from '@/features/espelho-vendas/pages/EspelhoVendasPage';
 import { FinanceAccountDetailPage } from '@/features/finance/pages/FinanceAccountDetailPage';
 import { FinanceDashboardPage } from '@/features/finance/pages/FinanceDashboardPage';
 import { FinanceListPage } from '@/features/finance/pages/FinanceListPage';
@@ -211,6 +212,17 @@ export function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
+
+      {/* Módulo 13 (Espelho de Vendas): rota PÚBLICA, sem login — site de
+          vendas visitado por qualquer pessoa da internet (`anon`, sem
+          sessão). Fica fora de `ProtectedRoute`/`AppShell` de propósito,
+          mesmo nível de `/login`/`/signup` acima, não dentro do app
+          autenticado. Path fixo (`/e/:slug`, tradução do `Espelho de Vendas
+          (/e/:slug)` do original), não usa `pageUrl()` — esse helper é só
+          para páginas do app autenticado (ver comentário de topo de
+          `src/lib/page-url.ts`). Ver `EspelhoVendasPage.tsx` para o
+          racional completo. */}
+      <Route path="/e/:slug" element={<EspelhoVendasPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppShell />}>
