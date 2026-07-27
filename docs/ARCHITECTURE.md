@@ -434,6 +434,48 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   uma aba nova em `FinanceAccountDetailPage`, fora do escopo deste
   módulo.
 
+**Módulo 12 — Portal do Investidor**
+- **Sem tabela nova**: diferente do Portal do Cliente, nenhuma migration
+  de schema foi necessária — `investors.user_id` já existia desde o
+  módulo 10, pensado exatamente para este vínculo.
+- **Desvio deliberado do original, motivado por segurança, não um bug
+  corrigido por acaso**: `InvestorDashboard.jsx` (a página consolidada
+  de 512 linhas) lista TODOS os investidores lado a lado, com nome e
+  saldo de cada um (`investorBalances`) — sem nenhum filtro por usuário
+  logado no próprio original. Portar isso literalmente pro papel
+  `investidor` vazaria dado financeiro privado de terceiros pro
+  primeiro investidor que logasse. A RLS nova (`0055_rls_investor_portal.sql`)
+  bloqueia isso de propósito (só as próprias linhas de
+  `investment_contributions`/`investment_returns`/`project_investors`),
+  e a rota `InvestorDashboard` passou a renderizar dois conteúdos
+  diferentes por `tenantRole`: equipe interna continua vendo o
+  consolidado de sempre (sem nenhuma mudança); `investidor` vê um
+  resumo pessoal novo (`InvestorDashboardInvestorView`, sem
+  equivalente visual no original — mesma categoria de decisão já
+  tomada no módulo 10 para os campos de custo de obra, "envolve
+  dinheiro de terceiros").
+- **`deals`/`commissions` não expostos ao papel investidor**: as 4
+  telas do original cruzam essas 2 tabelas no client para calcular o
+  "Resultado Operacional" (receita, custos, lucro, margem) por
+  projeto — dado comercial granular (valor de venda por unidade, etc.)
+  que não deve ser lido linha a linha por alguém externo ao tenant.
+  Criada a função `get_project_operational_result` (SECURITY DEFINER,
+  `0056_investor_operational_result.sql`), que replica exatamente
+  `calculateProjectResults` (`src/features/investors/resultHelpers.ts`)
+  dentro do banco e devolve só o agregado, autorizada apenas para quem
+  tem vínculo ativo no projeto (ou é equipe interna).
+- Dashboard pessoal (`InvestorDashboardInvestorView`) não soma "Lucro
+  Esperado" agregado de todos os projetos na tela de entrada —
+  exigiria uma chamada de RPC por projeto já na landing page. Os cards
+  de projeto linkam direto para "Meus Projetos", que já mostra
+  Lucro Esperado/Margem por projeto (via a mesma RPC, uma chamada por
+  card).
+- Sem convite automático de portal (mesma lacuna do módulo 11/4): criar
+  um `tenant_users` com `role='investidor'` vinculado ao `user_id` de
+  um `investors` continua manual.
+- Sem exportação em PDF, sem criação de `Notification` — mesmas
+  decisões já tomadas no módulo 10.
+
 ## Achados de segurança corrigidos (não aceitos como risco)
 
 - **Módulo 6 — Comissões** (auditoria de 2026-07-21): achado **alto**
@@ -609,4 +651,5 @@ auditoria do módulo 8, mas não específico dele)
 - [x] Módulo 9 (Manutenção pós-entrega: lista + detalhe, upload de fotos, fechando loop da Unidade) implementado, auditado e em produção — https://vivlar.vercel.app
 - [x] Módulo 10 (Investidores: cadastro, vínculo a projetos, aportes, retornos, dashboard consolidado) implementado — https://vivlar.vercel.app
 - [x] Módulo 11 (Portal do Cliente: minha unidade, financeiro + financiamento, manutenções com abertura/cancelamento de chamado) implementado, auditado e em produção — https://vivlar.vercel.app
+- [x] Módulo 12 (Portal do Investidor: dashboard pessoal, meus projetos com resultado operacional, meus aportes, meus retornos) implementado, pendente de auditoria e deploy
 - [ ] Auditoria de arquitetura geral rodada
