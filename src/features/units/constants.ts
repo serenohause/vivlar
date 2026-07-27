@@ -1,3 +1,4 @@
+import type { DocumentType } from '@/features/documents/types';
 import type { UnitAdminStatus, UnitStatus } from '@/features/units/types';
 
 /**
@@ -51,6 +52,31 @@ export const ADMIN_STATUS_ORDER = (Object.entries(ADMIN_STATUS_CONFIG) as [UnitA
 export const ADMIN_STATUS_OPTIONS = ADMIN_STATUS_ORDER.map(
   (status) => [status, ADMIN_STATUS_CONFIG[status]] as const
 );
+
+/**
+ * Tradução 1:1 de `REQUIRED_DOCS_BY_STATUS` em
+ * `original-project/src/components/shared/Constants.jsx` — documentos
+ * "hardcoded" obrigatórios em cada etapa do pipeline administrativo, chaves
+ * trocadas para os enums reais (`unit_admin_status`/`document_type`). Usado
+ * pela aba "Documentos" de `features/settings` (exibição, ao lado dos
+ * requisitos customizados salvos em `doc_requirements`) — a lógica de
+ * GATE de verdade (travar avanço de status sem os documentos aprovados,
+ * `original-project/src/pages/UnitDetail.jsx`) ainda não foi portada para
+ * `UnitDetailPage` (lacuna pré-existente, fora do escopo do módulo de
+ * Configurações).
+ */
+export const REQUIRED_DOCS_BY_STATUS: Record<UnitAdminStatus, DocumentType[]> = {
+  laudo_engenharia: ['laudo_eng'],
+  em_conformidade: ['form_caixa_assinado'],
+  cliente_conforme: [],
+  contrato_caixa: ['contrato_caixa_assinado'],
+  cartorio: ['itbi', 'certidao_negativa', 'contrato_caixa_assinado', 'validacao_assinatura_gov'],
+  registro_pago: ['comprov_registro_pago'],
+  registrado: ['matricula_averbada', 'contrato_caixa_selo_cartorio'],
+  entrega_casa: ['termo_vistoria', 'termo_entrega'],
+  entregue: [],
+  distrato: ['termo_distrato'],
+};
 
 /**
  * Opções de tipologia — mesma lista fixa do `<Select>` de tipologia em

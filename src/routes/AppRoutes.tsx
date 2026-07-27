@@ -46,6 +46,7 @@ import { ProjectsListPage } from '@/features/projects/pages/ProjectsListPage';
 import { RealEstateAgencyDetailPage } from '@/features/real-estate-agencies/pages/RealEstateAgencyDetailPage';
 import { RealEstateAgencyFormPage } from '@/features/real-estate-agencies/pages/RealEstateAgencyFormPage';
 import { RealEstateAgenciesListPage } from '@/features/real-estate-agencies/pages/RealEstateAgenciesListPage';
+import { SettingsPage } from '@/features/settings/pages/SettingsPage';
 import { TerrainDetailPage } from '@/features/terrains/pages/TerrainDetailPage';
 import { TerrainFormPage } from '@/features/terrains/pages/TerrainFormPage';
 import { TerrainsListPage } from '@/features/terrains/pages/TerrainsListPage';
@@ -173,6 +174,12 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 // `InvestorDashboardInvestorView`) — ver comentário completo naquele
 // arquivo. Mesmo critério do módulo 11: estas 4 páginas, para
 // `tenant_role = 'investidor'`, são as únicas liberadas (`INVESTOR_ALLOWED_PAGES`).
+// Fechando o módulo 14 (Configurações): "Settings" (sem sub-rota — 3 abas
+// dentro da mesma página, `Usuários`/`Documentos`/`Conta`, ver
+// `SettingsPage.tsx`; "Notificações"/"Teams" do original ficaram de fora
+// por decisão já tomada, não viram aba nem rota). Já tinha item de nav
+// (`features/dashboard/navigation.ts`, só para `admin`) mas caía em "em
+// construção" até agora.
 const PAGES_WITH_REAL_ROUTE = [
   'Terrains',
   'Projects',
@@ -201,6 +208,7 @@ const PAGES_WITH_REAL_ROUTE = [
   'InvestorProjectDetail',
   'InvestorContributions',
   'InvestorReturns',
+  'Settings',
 ];
 const COMING_SOON_PAGE_NAMES = getAllNavPageNames().filter(
   (name) => name !== 'Dashboard' && !PAGES_WITH_REAL_ROUTE.includes(name)
@@ -289,6 +297,8 @@ export function AppRoutes() {
           <Route path={`${pageUrl('InvestorProjects')}/:id`} element={<InvestorProjectDetailPage />} />
           <Route path={pageUrl('InvestorContributions')} element={<InvestorContributionsPage />} />
           <Route path={pageUrl('InvestorReturns')} element={<InvestorReturnsPage />} />
+
+          <Route path={pageUrl('Settings')} element={<SettingsPage />} />
 
           {COMING_SOON_PAGE_NAMES.map((pageName) => (
             <Route key={pageName} path={pageUrl(pageName)} element={<ComingSoonPage pageName={pageName} />} />
