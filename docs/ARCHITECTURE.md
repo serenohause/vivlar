@@ -694,16 +694,22 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   correção certa é impedir a emissão de sessão a e-mail não confirmado
   no próprio serviço de Auth, o que já foi feito.
 - **Módulo 14 — Configurações** (auditoria de 2026-07-27): achado
-  **alto**, descoberto durante a investigação do crítico acima, ainda
-  **não corrigido** — `site_url`/`uri_allow_list` do projeto Supabase
-  de produção apontam para `http://127.0.0.1:3000` (config local
-  vazando pra produção, mesmo padrão do achado anterior), não para
+  **alto**, descoberto durante a investigação do crítico acima —
+  `site_url`/`uri_allow_list` do projeto Supabase de produção
+  apontavam para `http://127.0.0.1:3000` (config local vazando pra
+  produção, mesmo padrão do achado anterior), não para
   `https://vivlar.vercel.app`. Com confirmação de e-mail agora
-  obrigatória, o link que o Supabase manda por e-mail vai redirecionar
+  obrigatória, o link que o Supabase manda por e-mail redirecionaria
   o navegador do usuário pra localhost depois de confirmar — quebrado
   na prática (o e-mail é confirmado no banco antes do redirect, login
-  normal depois funciona, mas o link direto falha). Corrigir antes do
-  deploy deste módulo, na etapa de deploy.
+  normal depois funciona, mas o link direto falharia). **Corrigido na
+  etapa de deploy** (2026-07-27) via Management API
+  (`PATCH /v1/projects/hppeqpmxupfghymkulne/config/auth`):
+  `site_url = "https://vivlar.vercel.app"` e
+  `uri_allow_list = "https://vivlar.vercel.app"` — releitura da config
+  (`GET`) confirmou a mudança antes e depois do deploy da Vercel. Nunca
+  ficou publicado com a config antiga (correção aplicada antes do
+  `git push`).
 
 ## Riscos aceitos (não corrigidos, decisão consciente do usuário)
 
@@ -880,5 +886,5 @@ auditoria do módulo 8, mas não específico dele)
 - [x] Módulo 11 (Portal do Cliente: minha unidade, financeiro + financiamento, manutenções com abertura/cancelamento de chamado) implementado, auditado e em produção — https://vivlar.vercel.app
 - [x] Módulo 12 (Portal do Investidor: dashboard pessoal, meus projetos com resultado operacional, meus aportes, meus retornos) implementado, auditado e em produção — https://vivlar.vercel.app
 - [x] Módulo 13 (Espelho de Vendas: site público por slug, captação de lead, reserva de unidade com trava atômica) implementado, auditado e em produção — https://vivlar.vercel.app
-- [x] Módulo 14 (Configurações: convite de equipe via lista de espera, vínculo cliente↔usuário, documentos obrigatórios por status, exclusão de conta) implementado, pendente de auditoria e deploy
+- [x] Módulo 14 (Configurações: convite de equipe via lista de espera, vínculo cliente↔usuário, documentos obrigatórios por status, exclusão de conta) implementado, auditado e em produção — https://vivlar.vercel.app
 - [ ] Auditoria de arquitetura geral rodada
