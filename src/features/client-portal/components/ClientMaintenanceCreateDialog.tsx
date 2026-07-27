@@ -61,16 +61,9 @@ interface ClientMaintenanceCreateDialogProps {
  *   Fiel a `ClientMaintenance.jsx` (`handleSubmit`: "É obrigatório anexar
  *   pelo menos 1 foto").
  *
- * ACHADO (reportado, não corrigido aqui — fora do escopo de frontend):
- * a RLS de `storage.objects` para o bucket `maintenance-photos`
- * (`0039_rls_maintenance_requests.sql`) só libera select/insert para
- * `tenant_role in ('admin', 'comercial', 'administrativo')` — o papel
- * `cliente` NUNCA foi incluído em nenhuma migration até `0053` (a própria
- * `0038` já sinalizava isso: "revisitar esta migration quando
- * ClientMaintenance.jsx for implementado" — é agora). Sem uma migration nova
- * de RLS liberando `cliente` neste bucket, o upload de foto abaixo falha em
- * runtime para todo usuário com `tenant_role = 'cliente'`. Ver relatório
- * desta tarefa.
+ * RLS do bucket `maintenance-photos` para `tenant_role = 'cliente'`
+ * (select próprio via `owner_id`/posse do chamado, insert só na pasta do
+ * próprio tenant) foi adicionada em `0054_rls_maintenance_photos_client.sql`.
  */
 export function ClientMaintenanceCreateDialog({ open, onOpenChange, clientId, units, projects, preselectedUnitId }: ClientMaintenanceCreateDialogProps) {
   const [formData, setFormData] = useState<ClientMaintenanceRequestFormInput>(emptyForm);
