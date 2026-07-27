@@ -7,8 +7,8 @@ export type FinanceAccountStatus = 'ativa' | 'finalizada' | 'cancelada';
  * eventos (`finance_events`).
  *
  * Sem `contract_id` (tabela `contracts` ainda não existe, módulo futuro de
- * Documentos) e sem ligação com `FinancingProcess` (schema incerto no
- * original, adiado — ver comentário na migration).
+ * Documentos). Ligação com `FinancingProcess` existe via `finance_account_id`
+ * (ver tipo abaixo, `supabase/migrations/0052_financing_process.sql`).
  */
 export interface FinanceAccount {
   id: string;
@@ -21,6 +21,47 @@ export interface FinanceAccount {
 
   valor_venda_total: number;
   status: FinanceAccountStatus;
+
+  is_deleted: boolean;
+  deleted_at: string | null;
+  deleted_by_user_id: string | null;
+
+  created_by_user_id: string | null;
+  updated_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Tradução 1:1 do enum `financing_status` (ver `supabase/migrations/0052_financing_process.sql`) — mesmos 8 valores confirmados em `FINANCING_STATUS_COLORS` nas duas telas que usam a entidade (`ClientFinance.jsx`/`FinanceDetail.jsx`). */
+export type FinancingStatus =
+  | 'nao_iniciado'
+  | 'documentos_pendentes'
+  | 'em_analise'
+  | 'aprovado'
+  | 'assinatura'
+  | 'liberado'
+  | 'reprovado'
+  | 'cancelado';
+
+/**
+ * Tradução 1:1 das colunas de `financing_process` — processo de
+ * financiamento bancário de uma `finance_account`, exibido no Portal do
+ * Cliente (`ClientFinancePage`) e (futuramente) no lado admin
+ * (`FinanceAccountDetailPage`, aba "Financiamento" ainda não construída —
+ * ver comentário lá). Só leitura em toda a UI confirmada no original
+ * (nenhum `FinancingProcess.create`/`.update`, ver `0052_financing_process.sql`).
+ * Não é 1:1 com `finance_accounts` de propósito — pode haver mais de um
+ * processo por conta (ex. banco trocado).
+ */
+export interface FinancingProcess {
+  id: string;
+  tenant_id: string;
+
+  finance_account_id: string;
+
+  banco: string | null;
+  status: FinancingStatus;
+  valor_aprovado: number | null;
 
   is_deleted: boolean;
   deleted_at: string | null;

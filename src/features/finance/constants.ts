@@ -1,4 +1,11 @@
-import type { CobrancaAcao, FinanceAccountStatus, FinanceEventType, InstallmentStatus, InstallmentType } from '@/features/finance/types';
+import type {
+  CobrancaAcao,
+  FinanceAccountStatus,
+  FinanceEventType,
+  FinancingStatus,
+  InstallmentStatus,
+  InstallmentType,
+} from '@/features/finance/types';
 
 /**
  * Tradução 1:1 de `STATUS_COLORS` em `original-project/src/pages/Finance.jsx`
@@ -36,6 +43,23 @@ export const INSTALLMENT_TYPE_LABELS: Record<InstallmentType, string> = {
   valor_financiado: 'Valor Financiado',
   subsidio: 'Subsídio',
   outros: 'Outros',
+};
+
+/**
+ * Tradução 1:1 de `FINANCING_STATUS_COLORS` (`ClientFinance.jsx`/`FinanceDetail.jsx`,
+ * idênticos nas duas telas) — cores usadas pelo badge de status do processo
+ * de financiamento. Chaves trocadas para o enum real (`financing_status`,
+ * ver `0052_financing_process.sql`).
+ */
+export const FINANCING_STATUS_CONFIG: Record<FinancingStatus, { label: string; color: string }> = {
+  nao_iniciado: { label: 'Não Iniciado', color: 'bg-slate-400' },
+  documentos_pendentes: { label: 'Documentos Pendentes', color: 'bg-yellow-500' },
+  em_analise: { label: 'Em Análise', color: 'bg-blue-500' },
+  aprovado: { label: 'Aprovado', color: 'bg-green-600' },
+  assinatura: { label: 'Assinatura', color: 'bg-purple-500' },
+  liberado: { label: 'Liberado', color: 'bg-emerald-600' },
+  reprovado: { label: 'Reprovado', color: 'bg-red-600' },
+  cancelado: { label: 'Cancelado', color: 'bg-slate-500' },
 };
 
 /** Tipos elegíveis para nova parcela, na ordem exibida no `<Select>` do original. */

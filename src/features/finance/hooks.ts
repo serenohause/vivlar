@@ -8,7 +8,7 @@ import type {
   RegisterCobrancaMutationPayload,
   RegisterPaymentMutationPayload,
 } from '@/features/finance/schemas';
-import type { CobrancaHistorico, FinanceAccount, FinanceEvent, PaymentInstallment } from '@/features/finance/types';
+import type { CobrancaHistorico, FinanceAccount, FinanceEvent, FinancingProcess, PaymentInstallment } from '@/features/finance/types';
 import { computeInstallmentDisplayStatus } from '@/features/finance/utils';
 import { supabase } from '@/lib/supabase';
 
@@ -37,6 +37,10 @@ function financeEventsQueryKey(financeAccountId: string) {
 
 function cobrancaHistoricoQueryKey(installmentId: string) {
   return ['cobranca-historico', installmentId] as const;
+}
+
+function financingProcessesQueryKey(financeAccountId: string) {
+  return ['financing-processes', financeAccountId] as const;
 }
 
 /**
@@ -178,6 +182,33 @@ export function useFinanceEvents(financeAccountId: string | undefined) {
         .from('finance_events')
         .select('*')
         .eq('finance_account_id', financeAccountId as string)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: Boolean(financeAccountId),
+  });
+}
+
+/**
+ * Processo(s) de financiamento bancário de uma carteira financeira —
+ * bloco "Financiamento" de `ClientFinancePage` (Portal do Cliente). Só
+ * leitura: sem `create`/`update` confirmado em nenhuma tela do original
+ * (nem admin, nem cliente — ver comentário em `0052_financing_process.sql`,
+ * "processo é alimentado fora do app"). `financing_process` não é 1:1 com
+ * `finance_accounts` de propósito (ver `FinancingProcess` em `types.ts`) —
+ * mais recente primeiro, mesmo critério do resto do projeto.
+ */
+export function useFinancingProcesses(financeAccountId: string | undefined) {
+  return useQuery({
+    queryKey: financingProcessesQueryKey(financeAccountId ?? ''),
+    queryFn: async (): Promise<FinancingProcess[]> => {
+      const { data, error } = await supabase
+        .from('financing_process')
+        .select('*')
+        .eq('finance_account_id', financeAccountId as string)
+        .eq('is_deleted', false)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

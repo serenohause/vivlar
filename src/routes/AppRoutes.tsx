@@ -6,6 +6,9 @@ import { SignupPage } from '@/features/auth/pages/SignupPage';
 import { BrokerDetailPage } from '@/features/brokers/pages/BrokerDetailPage';
 import { BrokerFormPage } from '@/features/brokers/pages/BrokerFormPage';
 import { BrokersListPage } from '@/features/brokers/pages/BrokersListPage';
+import { ClientFinancePage } from '@/features/client-portal/pages/ClientFinancePage';
+import { ClientMaintenancePage } from '@/features/client-portal/pages/ClientMaintenancePage';
+import { ClientUnitPage } from '@/features/client-portal/pages/ClientUnitPage';
 import { ClientDetailPage } from '@/features/clients/pages/ClientDetailPage';
 import { ClientFormPage } from '@/features/clients/pages/ClientFormPage';
 import { ClientsListPage } from '@/features/clients/pages/ClientsListPage';
@@ -130,7 +133,22 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 // dialog de criação, sem sub-rota de detalhe própria (o original não tinha
 // `InvestmentContributionDetail`/`InvestmentReturnDetail` como páginas de
 // fato conectadas, só links quebrados — a lista já cobre visualização/edição
-// via dialog inline, mesmo padrão de "Commissions").
+// via dialog inline, mesmo padrão de "Commissions"). Fechando o módulo 11
+// (Portal do Cliente): "ClientUnit" (Minha Unidade, sem sub-rota — igual ao
+// original, `ClientUnit.jsx` nunca teve `ClientUnitDetail`), "ClientFinance"
+// (Financeiro, sem sub-rota — mesmo critério) e "ClientMaintenance"
+// (Manutenções, sem sub-rota própria: diferente de "AdminMaintenance", NÃO
+// ganha "/client-maintenance/:id" nesta rodada — ver comentário completo em
+// `ClientMaintenancePage.tsx`, o cliente reaproveitaria a MESMA
+// `MaintenanceDetailPage`/`/admin-maintenance/:id` do lado admin, que já
+// esconde os controles internos por `tenantRole`, mas foi decidido não
+// linkar por enquanto para não confundir a navegação — "Voltar" daquela
+// tela aponta para uma rota fora de `CLIENT_ALLOWED_PAGES`). As 3 páginas
+// deste módulo, ao contrário de todo o resto do app, não seguem
+// `admin`/`comercial`/`administrativo` como público — são as ÚNICAS 3
+// páginas liberadas para `tenant_role = 'cliente'` (ver
+// `CLIENT_ALLOWED_PAGES`, `features/dashboard/navigation.ts`, e o redirect
+// em `AppShell.tsx`).
 const PAGES_WITH_REAL_ROUTE = [
   'Terrains',
   'Projects',
@@ -152,6 +170,9 @@ const PAGES_WITH_REAL_ROUTE = [
   'Investors',
   'InvestmentContributions',
   'InvestmentReturns',
+  'ClientUnit',
+  'ClientFinance',
+  'ClientMaintenance',
 ];
 const COMING_SOON_PAGE_NAMES = getAllNavPageNames().filter(
   (name) => name !== 'Dashboard' && !PAGES_WITH_REAL_ROUTE.includes(name)
@@ -220,6 +241,10 @@ export function AppRoutes() {
           <Route path={`${pageUrl('Investors')}/:id`} element={<InvestorDetailPage />} />
           <Route path={pageUrl('InvestmentContributions')} element={<InvestmentContributionsListPage />} />
           <Route path={pageUrl('InvestmentReturns')} element={<InvestmentReturnsListPage />} />
+
+          <Route path={pageUrl('ClientUnit')} element={<ClientUnitPage />} />
+          <Route path={pageUrl('ClientFinance')} element={<ClientFinancePage />} />
+          <Route path={pageUrl('ClientMaintenance')} element={<ClientMaintenancePage />} />
 
           {COMING_SOON_PAGE_NAMES.map((pageName) => (
             <Route key={pageName} path={pageUrl(pageName)} element={<ComingSoonPage pageName={pageName} />} />

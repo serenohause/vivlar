@@ -86,24 +86,34 @@ type CreateMaintenanceRequestInput = {
   description: string;
   category: string;
   priority: MaintenancePriority;
-  /** Paths já enviados ao bucket `maintenance-photos` (ver `useUploadMaintenancePhoto`) — upload acontece ANTES do submit, fiel a `handlePhotoUpload`/`uploadedPhotos` (`AdminMaintenance.jsx`). */
+  /** Paths já enviados ao bucket `maintenance-photos` (ver `useUploadMaintenancePhoto`) — upload acontece ANTES do submit, fiel a `handlePhotoUpload`/`uploadedPhotos` (`AdminMaintenance.jsx`/`ClientMaintenance.jsx`). */
   photos: string[];
+  /**
+   * Data sugerida pelo CLIENTE ao abrir o chamado (`suggested_date`) —
+   * opcional, só usada pelo formulário do Portal do Cliente
+   * (`ClientMaintenanceCreateDialog`, `features/client-portal`). O
+   * formulário interno/admin (`MaintenanceFormDialog`) nunca envia este
+   * campo (chamado já nasce direto da equipe, sem "sugestão" a fazer) —
+   * mantido opcional aqui em vez de duas mutations separadas.
+   */
+  suggested_date?: string | null;
 };
 
 /**
  * Cria o chamado de manutenção — tradução de `createMutation`
- * (`AdminMaintenance.jsx`). `project_id` resolvido a partir de `unit_id`
- * (mesmo critério de `useCreateInspection`, `features/inspections/hooks.ts`)
- * em vez de confiar num valor já carregado no client. `opened_at`/`status`
- * ficam para os defaults do banco (`now()`/`'aberto'`, ver
- * `0037_maintenance_requests.sql`) — sem necessidade de setá-los aqui.
- *
- * DECISÃO: `suggested_date` não é usado neste formulário (nem lido, nem
- * escrito) — o schema documenta a coluna como "sugerida pelo cliente ao
- * abrir o chamado, sem write path nesta rodada" (ver comentário em
- * `0037_maintenance_requests.sql`); esta rodada é só o lado interno/admin,
- * sem portal do cliente. `scheduled_date` (a data que a EQUIPE agenda) já
- * cobre a necessidade de agendamento — ver `useUpdateMaintenanceRequest`.
+ * (`AdminMaintenance.jsx`, lado interno) e de `createMutation`
+ * (`ClientMaintenance.jsx`, Portal do Cliente — mesmo shape de `MaintenanceRequest.create(...)`,
+ * só muda quem preenche `client_id`/`unit_id`: o operador escolhe em
+ * `MaintenanceFormDialog`, o cliente já vem implícito do próprio
+ * `useMyClient()`/unidade que possui em `ClientMaintenanceCreateDialog`).
+ * `project_id` resolvido a partir de `unit_id` (mesmo critério de
+ * `useCreateInspection`, `features/inspections/hooks.ts`) em vez de confiar
+ * num valor já carregado no client. `opened_at`/`status` ficam para os
+ * defaults do banco (`now()`/`'aberto'`, ver `0037_maintenance_requests.sql`)
+ * — sem necessidade de setá-los aqui; a RLS de INSERT do papel `cliente`
+ * (`0053_rls_client_portal_access.sql`) também exige `status = 'aberto'`
+ * explicitamente, então não setar nada aqui é o único valor aceito de
+ * qualquer forma.
  */
 export function useCreateMaintenanceRequest() {
   const queryClient = useQueryClient();
@@ -132,6 +142,7 @@ export function useCreateMaintenanceRequest() {
           category: input.category,
           priority: input.priority,
           photos: input.photos,
+          suggested_date: input.suggested_date || null,
           created_by_user_id: user?.id ?? null,
           updated_by_user_id: user?.id ?? null,
         })
@@ -197,6 +208,46 @@ export function useUpdateMaintenanceRequest(id: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: maintenanceRequestQueryKey(id) });
+      invalidateMaintenanceLists(queryClient);
+    },
+  });
+}
+
+/**
+ * Cancela o PRÓPRIO chamado — tradução de `cancelMutation`
+ * (`ClientMaintenance.jsx`, Portal do Cliente), a ÚNICA escrita do papel
+ * `cliente` em `maintenance_requests` além da criação (`useCreateMaintenanceRequest`).
+ * Recebe o `id` como variável da mutation (não como parâmetro do hook,
+ * diferente de `useUpdateMaintenanceRequest`) porque `ClientMaintenancePage`
+ * lista vários chamados ao mesmo tempo, cada um com seu próprio botão
+ * "Cancelar" — mesmo padrão de `useSoftDeleteMaintenanceRequest` logo
+ * abaixo. Envia SOMENTE `{ status: 'cancelado' }` (+ metadado de auditoria),
+ * espelhando exatamente o que a RLS (`maintenance_requests_update_tenant_client_cancel_own`)
+ * e o trigger complementar (`enforce_maintenance_request_client_cancel_only`,
+ * `0053_rls_client_portal_access.sql`) permitem: só a transição
+ * `aberto -> cancelado`, nenhuma outra coluna. A checagem "só quando
+ * status === 'aberto'" (esconder o botão) é feita na página, refletindo a
+ * mesma regra que o banco já impõe — não substitui a RLS, só evita uma
+ * chamada fadada a falhar.
+ */
+export function useCancelMaintenanceRequest() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (id: string): Promise<MaintenanceRequest> => {
+      const { data, error } = await supabase
+        .from('maintenance_requests')
+        .update({ status: 'cancelado', updated_by_user_id: user?.id ?? null })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: maintenanceRequestQueryKey(data.id) });
       invalidateMaintenanceLists(queryClient);
     },
   });
