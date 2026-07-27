@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import { useEffect, useRef, useState } from 'react';
 
 import { formatCurrency, IMPLANTACAO_FILTERS, STATUS_BG_CLASS, STATUS_DOT_HEX, STATUS_LABELS } from '@/features/espelho-vendas/constants';
@@ -27,6 +28,21 @@ interface ImplantacaoInterativaProps {
  * `schema-architect` decidir se adiciona a coluna ou remove o modo SVG;
  * não inventado aqui. A grade de cards (fallback, sem SVG) é 100%
  * funcional e não depende deste campo.
+ *
+ * SANITIZAÇÃO (achado de auditoria de segurança corrigido nesta leva):
+ * `implantacao_svg_url` é buscado via `fetch` e o corpo da resposta injetado
+ * cru no DOM com `dangerouslySetInnerHTML` -- isso é XSS armazenado em
+ * potencial na primeira superfície pública do projeto (`anon`, sem
+ * autenticação): um SVG pode carregar `<script>`, `<foreignObject>` com HTML
+ * arbitrário, ou atributos `on*` que executam JS no navegador de QUALQUER
+ * visitante da rota `/e/:slug` assim que o campo for preenchido (hoje só via
+ * acesso direto ao banco -- nenhum formulário admin ainda escreve nesse
+ * campo, mas a função pública já devolve o valor tal como está gravado, sem
+ * nenhuma barreira de sanitização no meio do caminho). Corrigido sanitizando
+ * com DOMPurify (perfil SVG, `FORBID_TAGS` explícito para `script`/
+ * `foreignObject`, `on*` removido por padrão) antes de guardar em
+ * `svgContent` -- defesa em profundidade, independente de quem/como o campo
+ * vier a ser preenchido no futuro.
  */
 export function ImplantacaoInterativa({ project, units, onUnitSelect }: ImplantacaoInterativaProps) {
   const [filter, setFilter] = useState<'todas' | UnitStatus>('todas');
@@ -42,7 +58,18 @@ export function ImplantacaoInterativa({ project, units, onUnitSelect }: Implanta
     fetch(project.implantacao_svg_url)
       .then((r) => r.text())
       .then((text) => {
-        if (!cancelled) setSvgContent(text);
+        if (cancelled) return;
+        // Sanitiza antes de guardar em estado -- nunca guarda/injeta o SVG
+        // cru buscado pela rede. `FORBID_TAGS`/`FORBID_ATTR` explícitos além
+        // do default do DOMPurify (que já remove script/on*) para fechar
+        // também vetores de HTML embutido via <foreignObject> e handlers de
+        // evento inline em qualquer atributo.
+        const clean = DOMPurify.sanitize(text, {
+          USE_PROFILES: { svg: true, svgFilters: true },
+          FORBID_TAGS: ['script', 'foreignObject'],
+          FORBID_ATTR: ['onload', 'onerror', 'onclick', 'onmouseover', 'onmouseenter', 'onmouseleave'],
+        });
+        setSvgContent(clean);
       })
       .catch(() => {
         if (!cancelled) setSvgContent(null);
