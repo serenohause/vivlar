@@ -666,6 +666,44 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   Corrigido sanitizando com DOMPurify (perfil SVG, proibindo
   explicitamente `script`/`foreignObject`/handlers `on*`) antes de
   qualquer render — nunca chegou a produção sem a correção.
+- **Módulo 14 — Configurações** (auditoria de 2026-07-27): achado
+  **crítico** — sequestro de convite via cadastro com e-mail alheio
+  não verificado. `accept_pending_invite()` (nova neste módulo) confia
+  em `auth.jwt() ->> 'email'` para casar um usuário recém-cadastrado
+  com um convite pendente, e é chamada automaticamente ao logar
+  (`ProtectedRoute.tsx`) — mas o projeto Supabase de **produção**
+  estava com confirmação de e-mail desligada (`mailer_autoconfirm =
+  true`, confirmado via Management API contra o projeto real, não só
+  `supabase/config.toml` local — os dois batiam). Isso significava que
+  qualquer pessoa podia se cadastrar com um e-mail que não é dela (sem
+  nunca provar posse da caixa de entrada), receber sessão válida com
+  esse e-mail no JWT, e virar automaticamente o que quer que o convite
+  pendente daquele e-mail dissesse — **inclusive `admin`** de uma
+  empresa que não é a dela. Cenário de ataque confirmado, não
+  hipotético (admin convida `joao@empresa.com` como admin → atacante
+  se cadastra com esse e-mail → vira admin do tenant de outra pessoa).
+  Corrigido em produção via Management API
+  (`mailer_autoconfirm = false`, confirmação de e-mail agora
+  obrigatória) e no repositório (`supabase/config.toml`), commit
+  `75473ac` — nunca ficou explorável em produção sem a correção
+  (achado e correção na mesma sessão de auditoria). Avaliada e
+  descartada uma segunda camada de defesa (checar `email_verified` no
+  claim dentro da própria função): esse campo vive em `user_metadata`,
+  que o próprio usuário autenticado pode editar via
+  `updateUser({ data })` — daria falsa sensação de segurança. A
+  correção certa é impedir a emissão de sessão a e-mail não confirmado
+  no próprio serviço de Auth, o que já foi feito.
+- **Módulo 14 — Configurações** (auditoria de 2026-07-27): achado
+  **alto**, descoberto durante a investigação do crítico acima, ainda
+  **não corrigido** — `site_url`/`uri_allow_list` do projeto Supabase
+  de produção apontam para `http://127.0.0.1:3000` (config local
+  vazando pra produção, mesmo padrão do achado anterior), não para
+  `https://vivlar.vercel.app`. Com confirmação de e-mail agora
+  obrigatória, o link que o Supabase manda por e-mail vai redirecionar
+  o navegador do usuário pra localhost depois de confirmar — quebrado
+  na prática (o e-mail é confirmado no banco antes do redirect, login
+  normal depois funciona, mas o link direto falha). Corrigir antes do
+  deploy deste módulo, na etapa de deploy.
 
 ## Riscos aceitos (não corrigidos, decisão consciente do usuário)
 
@@ -795,6 +833,25 @@ auditoria do módulo 8, mas não específico dele)
   RLS futura por higiene.
 - Nenhum achado novo além do risco de spam/abuso já aceito
   conscientemente antes de construir (ver seção de riscos aceitos).
+
+**Módulo 14 — Configurações** (auditoria de 2026-07-27)
+- Achado **crítico** de sequestro de convite via cadastro com e-mail
+  não verificado — ver seção "Achados de segurança corrigidos" acima.
+  Corrigido em produção (Management API) e no repositório antes de
+  qualquer deploy deste módulo.
+- Achado **alto**, ainda em aberto: `site_url`/`uri_allow_list` do
+  Supabase de produção apontam para `127.0.0.1:3000` em vez de
+  `https://vivlar.vercel.app` — corrigir na etapa de deploy, antes de
+  publicar (link de confirmação de e-mail, agora obrigatório, depende
+  disso pra funcionar de verdade pro usuário final).
+- Alto (dependência, reincidente dos módulos 11-13): mesmo advisory de
+  `react-router-dom`, mesma avaliação — vetor RSC não se aplica a este
+  app. Continua acompanhado, não bloqueia deploy.
+- Baixo, informativo, não é regressão: a policy de UPDATE de
+  `tenant_users` (`0002`, sem mudança neste módulo) não restringe
+  coluna — um admin já podia, por design desde a fundação do projeto,
+  reatribuir `user_id` de qualquer vínculo do próprio tenant. Nunca
+  cruza fronteira de tenant.
 
 ## Desvios do padrão do CLAUDE.md
 
