@@ -23,6 +23,10 @@ import { FinanceAccountDetailPage } from '@/features/finance/pages/FinanceAccoun
 import { FinanceDashboardPage } from '@/features/finance/pages/FinanceDashboardPage';
 import { FinanceListPage } from '@/features/finance/pages/FinanceListPage';
 import { InadimplenciaManagerPage } from '@/features/finance/pages/InadimplenciaManagerPage';
+import { InvestorContributionsPage } from '@/features/investor-portal/pages/InvestorContributionsPage';
+import { InvestorProjectDetailPage } from '@/features/investor-portal/pages/InvestorProjectDetailPage';
+import { InvestorProjectsPage } from '@/features/investor-portal/pages/InvestorProjectsPage';
+import { InvestorReturnsPage } from '@/features/investor-portal/pages/InvestorReturnsPage';
 import { TemplateDetailPage } from '@/features/inspection-templates/pages/TemplateDetailPage';
 import { TemplatesListPage } from '@/features/inspection-templates/pages/TemplatesListPage';
 import { CreateInspectionPage } from '@/features/inspections/pages/CreateInspectionPage';
@@ -148,7 +152,26 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 // `admin`/`comercial`/`administrativo` como público — são as ÚNICAS 3
 // páginas liberadas para `tenant_role = 'cliente'` (ver
 // `CLIENT_ALLOWED_PAGES`, `features/dashboard/navigation.ts`, e o redirect
-// em `AppShell.tsx`).
+// em `AppShell.tsx`). Fechando o módulo 12 (Portal do Investidor): diferente
+// do Portal do Cliente, aqui não existem páginas novas no original — as
+// mesmas 4 telas (`InvestorProjects`/`InvestorProjectDetail`/
+// `InvestorContributions`/`InvestorReturns`) já existiam como conceito desde
+// o módulo 10, só sem rota própria (caíam em "em construção"). "InvestorProjects"
+// (lista, "/investor-projects") + "InvestorProjectDetail"
+// ("/investor-projects/:id" — path param, não a query string `?projectId=`
+// do original, mesma convenção `/<slug>/:id` do resto do app, ver
+// `InvestorProjectDetailPage.tsx`), "InvestorContributions" (lista,
+// "/investor-contributions" — kebab-case mecânico de "InvestorContributions",
+// não confundir com "/investment-contributions" do módulo 10, admin) e
+// "InvestorReturns" (idem, "/investor-returns" vs. "/investment-returns" do
+// módulo 10) — nenhuma das duas com sub-rota, só leitura. "InvestorDashboard"
+// NÃO ganha rota nova aqui — já existe desde o módulo 10 e passa a
+// renderizar conteúdo diferente por `tenantRole` dentro do próprio
+// `InvestorDashboardPage.tsx` (equipe interna vê o dashboard consolidado de
+// sempre; `tenant_role = 'investidor'` vê um resumo pessoal novo,
+// `InvestorDashboardInvestorView`) — ver comentário completo naquele
+// arquivo. Mesmo critério do módulo 11: estas 4 páginas, para
+// `tenant_role = 'investidor'`, são as únicas liberadas (`INVESTOR_ALLOWED_PAGES`).
 const PAGES_WITH_REAL_ROUTE = [
   'Terrains',
   'Projects',
@@ -173,6 +196,10 @@ const PAGES_WITH_REAL_ROUTE = [
   'ClientUnit',
   'ClientFinance',
   'ClientMaintenance',
+  'InvestorProjects',
+  'InvestorProjectDetail',
+  'InvestorContributions',
+  'InvestorReturns',
 ];
 const COMING_SOON_PAGE_NAMES = getAllNavPageNames().filter(
   (name) => name !== 'Dashboard' && !PAGES_WITH_REAL_ROUTE.includes(name)
@@ -245,6 +272,11 @@ export function AppRoutes() {
           <Route path={pageUrl('ClientUnit')} element={<ClientUnitPage />} />
           <Route path={pageUrl('ClientFinance')} element={<ClientFinancePage />} />
           <Route path={pageUrl('ClientMaintenance')} element={<ClientMaintenancePage />} />
+
+          <Route path={pageUrl('InvestorProjects')} element={<InvestorProjectsPage />} />
+          <Route path={`${pageUrl('InvestorProjects')}/:id`} element={<InvestorProjectDetailPage />} />
+          <Route path={pageUrl('InvestorContributions')} element={<InvestorContributionsPage />} />
+          <Route path={pageUrl('InvestorReturns')} element={<InvestorReturnsPage />} />
 
           {COMING_SOON_PAGE_NAMES.map((pageName) => (
             <Route key={pageName} path={pageUrl(pageName)} element={<ComingSoonPage pageName={pageName} />} />

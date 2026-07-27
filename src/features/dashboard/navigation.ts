@@ -212,10 +212,19 @@ export function getDefaultExpandedAccordion(currentPageName: string): string {
   return ACCORDION_BY_PAGE[currentPageName] ?? '';
 }
 
-/** Rotas liberadas para o perfil "investidor" — usado no redirect de acesso. */
+/**
+ * Rotas liberadas para o perfil "investidor" — usado no redirect de acesso.
+ * `InvestorProjectDetail` (`/investor-projects/:id`) documentado aqui por
+ * completude, mas não tem efeito prático no redirect: `currentPageName`
+ * (`AppShell.tsx`) só resolve para rotas ESTÁTICAS (`PAGE_NAME_BY_PATH`),
+ * nunca para uma rota com `:id` de verdade na URL — mesma situação de
+ * qualquer outra tela de detalhe do app (`InvestorDetail`,
+ * `ProjectDetail`, etc), nenhuma delas está em nenhum "ALLOWED_PAGES".
+ */
 export const INVESTOR_ALLOWED_PAGES = [
   'InvestorDashboard',
   'InvestorProjects',
+  'InvestorProjectDetail',
   'InvestorContributions',
   'InvestorReturns',
 ];
@@ -272,6 +281,7 @@ export const PAGE_LABELS: Record<string, PageLabelEntry> = {
   WhatsAppSessions: { label: 'Sessões WhatsApp', parent: 'Dashboard' },
   Notifications: { label: 'Notificações', parent: 'Dashboard' },
   InvestorProjects: { label: 'Meus Projetos', parent: 'InvestorDashboard' },
+  InvestorProjectDetail: { label: 'Detalhe do Projeto', parent: 'InvestorProjects' },
   InvestorContributions: { label: 'Meus Aportes', parent: 'InvestorDashboard' },
   InvestorReturns: { label: 'Meus Retornos', parent: 'InvestorDashboard' },
   ClientUnit: { label: 'Minha Unidade', parent: null },

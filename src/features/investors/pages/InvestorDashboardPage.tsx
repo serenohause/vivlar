@@ -8,12 +8,44 @@ import { ErrorState } from '@/components/ui/error-state';
 import { LoadingInline } from '@/components/ui/loading-inline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { useAuth } from '@/features/auth/AuthContext';
 import { useCommissions } from '@/features/commissions/hooks';
 import { useDeals } from '@/features/deals/hooks';
+import { InvestorDashboardInvestorView } from '@/features/investor-portal/pages/InvestorDashboardInvestorView';
 import { formatCurrency } from '@/features/investors/constants';
 import { useInvestmentContributions, useInvestmentReturns, useInvestors, useProjectInvestors } from '@/features/investors/hooks';
 import { calculateAmountDue, calculateInvestorShare, calculateProjectResults } from '@/features/investors/resultHelpers';
 import { useProjects } from '@/features/projects/hooks';
+
+/**
+ * Rota `InvestorDashboard` (`pageUrl('InvestorDashboard')`) — mesma URL para
+ * dois conteúdos completamente diferentes conforme `tenantRole`:
+ *
+ *   - Equipe interna (`admin`/`comercial`/`administrativo`): dashboard
+ *     consolidado ORIGINAL do módulo 10, sem nenhuma mudança —
+ *     `InvestorDashboardAdminView` abaixo, tradução de
+ *     `original-project/src/pages/InvestorDashboard.jsx`.
+ *   - `tenant_role = 'investidor'`: `InvestorDashboardInvestorView`
+ *     (`src/features/investor-portal`), resumo PESSOAL novo (só os próprios
+ *     projetos/aportes/retornos/saldo).
+ *
+ * A separação é proposital e não é só estética: `InvestorDashboardAdminView`
+ * faz `select('*')` direto em `investment_contributions`/`investment_returns`/
+ * `project_investors` esperando ver TODAS as linhas do tenant, inclusive
+ * nome/saldo de CADA investidor lado a lado (`investorBalances`) — a RLS
+ * nova (`0055_rls_investor_portal.sql`) bloqueia isso de propósito para
+ * `tenant_role = 'investidor'` (só as PRÓPRIAS linhas), então reaproveitar
+ * este componente tal como está para o papel investidor mostraria dado
+ * zerado/incompleto, não um erro claro — daí a view pessoal separada. Ver
+ * racional completo no topo de `0055_rls_investor_portal.sql` e de
+ * `InvestorDashboardInvestorView`.
+ */
+export function InvestorDashboardPage() {
+  const { tenantRole } = useAuth();
+
+  if (tenantRole === 'investidor') return <InvestorDashboardInvestorView />;
+  return <InvestorDashboardAdminView />;
+}
 
 /**
  * Tradução de `original-project/src/pages/InvestorDashboard.jsx` — resultado
@@ -21,9 +53,10 @@ import { useProjects } from '@/features/projects/hooks';
  * card/alerta de "retornos legados sem classificação" nem a migração
  * automática (`migrateInvestmentReturns`): não existe dado legado nesta
  * plataforma nova (`investment_returns.return_type` é `not null` desde o
- * primeiro registro).
+ * primeiro registro). Exclusiva da equipe interna — ver `InvestorDashboardPage`
+ * acima para o racional completo da separação por `tenantRole`.
  */
-export function InvestorDashboardPage() {
+function InvestorDashboardAdminView() {
   const { data: projects, isLoading: isLoadingProjects, isError: isErrorProjects, refetch: refetchProjects } = useProjects();
   const { data: investors, isLoading: isLoadingInvestors, isError: isErrorInvestors, refetch: refetchInvestors } = useInvestors();
   const { data: projectInvestors, isLoading: isLoadingLinks, isError: isErrorLinks, refetch: refetchLinks } = useProjectInvestors();

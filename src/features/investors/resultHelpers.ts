@@ -63,6 +63,54 @@ export function calculateProjectResults(
   };
 }
 
+/**
+ * Formato de retorno da RPC `get_project_operational_result` (SECURITY
+ * DEFINER, `supabase/migrations/0056_investor_operational_result.sql`) —
+ * mesma fórmula de `calculateProjectResults` acima, mas calculada dentro do
+ * banco a partir de `deals`/`commissions`, sem expor essas 2 tabelas linha a
+ * linha ao papel `investidor` (nenhuma policy de SELECT existe para
+ * `investidor` nessas tabelas, de propósito — ver racional na migration).
+ * Usada pelo Portal do Investidor (`src/features/investor-portal`), que por
+ * isso não pode montar um `ProjectResults` a partir de `deals`/`commissions`
+ * como `InvestorDashboardPage` (admin) faz — só tem o agregado desta RPC.
+ */
+export interface ProjectOperationalResult {
+  project_id: string;
+  received_revenue: number;
+  sales_costs: number;
+  net_vgv: number;
+  total_construction_cost: number;
+  total_indirect_costs: number;
+  total_costs: number;
+  net_result: number;
+  margin: number;
+}
+
+/**
+ * Reconstrói um `ProjectResults` completo a partir do retorno da RPC —
+ * `grossVGV`/`grossResult` não vêm da RPC porque `calculateProjectResults`
+ * (linhas 38/49 acima) já os define como idênticos a `receivedRevenue`/
+ * `netResult`, sem nenhum cálculo adicional; replicar essa igualdade aqui em
+ * vez de devolver os 2 campos redundantes da função SQL evita duplicar a
+ * mesma fórmula em dois lugares (TS e SQL). Usada pelo Portal do Investidor
+ * para poder reaproveitar `calculateInvestorShare` (que espera um
+ * `ProjectResults` completo) sobre o resultado vindo da RPC.
+ */
+export function projectResultsFromOperationalResult(result: ProjectOperationalResult): ProjectResults {
+  return {
+    receivedRevenue: result.received_revenue,
+    grossVGV: result.received_revenue,
+    salesCosts: result.sales_costs,
+    netVGV: result.net_vgv,
+    totalConstructionCost: result.total_construction_cost,
+    totalIndirectCosts: result.total_indirect_costs,
+    totalCosts: result.total_costs,
+    grossResult: result.net_result,
+    netResult: result.net_result,
+    margin: result.margin,
+  };
+}
+
 /** Tradução 1:1 de `calculateCycleDuration` (mesmo arquivo do original) — meses entre início e fim do ciclo de vendas de um projeto. */
 export function calculateCycleDuration(startDate: string | null | undefined, endDate: string | null | undefined): number {
   if (!startDate || !endDate) return 0;
