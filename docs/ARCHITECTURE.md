@@ -183,12 +183,21 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   Cliente — também listado no módulo 1).
 - Sem notificação/integração com Microsoft Teams (não existe tabela
   `notifications`, e a integração externa em si é feature à parte).
-- `deal_brokers` (co-corretagem) e `unit_checks` não foram criados —
-  nenhuma tela do original de fato os usa hoje.
+- `deal_brokers` (co-corretagem) não foi criado — nenhuma tela do
+  original de fato o usa hoje.
+- `unit_checks`: esta seção afirmava que também não era usada em
+  nenhuma tela — **incorreto**, corrigido no módulo 11. `UnitDetail.jsx`
+  do original grava e lê de verdade (`createCheckMutation`/
+  `updateCheckMutation`/`checkCanAdvance`, gate de avanço de
+  `admin_status`), só nunca tinha sido conferido linha a linha até então.
+  Tabela criada em `0048_unit_checks.sql`.
 
 **Módulo 5 — Financeiro (Contas a Receber, Dashboard Financeiro, Inadimplência)**
 - Sem `FinancingProcess` (processo de financiamento bancário) — schema
-  incerto no original (só leitura em `src`, sem `.create()`).
+  incerto no original (só leitura em `src`, sem `.create()`). Criada no
+  módulo 11 (`0052_financing_process.sql`), motivada pelo Portal do
+  Cliente; continua só leitura (nenhum `.create()`/`.update()` em
+  lugar nenhum do original, nem admin nem cliente).
 - `finance_accounts` sem `contract_id` — `contracts` não existe ainda
   (módulo futuro de Documentos/Contratos).
 - Sem `DistratoCheckup`/`FinanceCheckup` — ferramentas de auditoria/
@@ -376,6 +385,55 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   usuário porque envolve dinheiro de terceiros, sem equivalente no
   original (o app antigo não tinha controle de acesso por papel).
 
+**Módulo 11 — Portal do Cliente**
+- **Correção de escopo no meio do módulo**: a fonte inicial usada
+  (`original-project/src/pages/ClientPortal.jsx`) acabou sendo uma
+  página órfã — não referenciada em nenhuma navegação do original
+  (confirmado por grep em todo `original-project/src`). O portal do
+  cliente de fato usado é outro conjunto de 3 páginas, linkadas em
+  `Layout.jsx` ("PORTAL DO CLIENTE"): `ClientUnit` (minha unidade),
+  `ClientFinance` (financeiro + financiamento) e `ClientMaintenance`
+  (abrir/acompanhar/cancelar chamado de manutenção, com foto
+  obrigatória). São essas 3 que foram portadas.
+- **`construction_photos`/`client_messages`**: tabelas criadas (com RLS)
+  antes de descobrir que `ClientPortal.jsx` era órfã. Decisão do usuário
+  (2026-07-27): manter no schema sem UI correspondente, como preparação
+  não utilizada — não são lidas nem escritas por nenhuma tela hoje.
+  Revisitar se um dia a galeria de fotos de obra ou o mural de mensagens
+  virar prioridade de produto (no original, nenhuma tela cria esses
+  dados também — seriam features novas, não uma restauração).
+- **Fechado nesta leva**: `unit_checks` (ver correção acima, módulo 4) —
+  criada e com RLS, mas nenhuma tela nova (admin ou cliente) foi
+  construída para lê-la/escrevê-la neste módulo; o gate de avanço de
+  `admin_status` por checklist continua não implementado no admin
+  (`UnitDetailPage`). Schema pronto para quando isso for priorizado.
+- **`status_transitions` do `admin_status`**: continua não gravando
+  (só `sales_stage` do CRM grava lá) — lacuna de UI no admin
+  (`UnitDetailPage`), não de schema (tabela já suporta
+  `transition_type = 'admin'` desde o módulo 3). `ClientUnit` mostra o
+  `admin_status` atual direto da unidade, sem depender dessa lacuna.
+- Sem convite automático de portal: criar um `tenant_users` com
+  `role='cliente'` vinculado ao `user_id` de um `clients` continua
+  manual (mesma lacuna já apontada no módulo 1/4) — sem RPC/fluxo de
+  "criar acesso do cliente" ao vender. Confirmado que também não existe
+  no original (nenhum `.create()` de convite em `src`).
+- Sem `Notification` (entidade não existe no projeto, débito transversal
+  já conhecido desde módulos anteriores) — `ClientMaintenance.jsx`
+  cria uma ao abrir chamado no original, não portado.
+- Link "ver detalhe" de um chamado de manutenção, na lista do cliente,
+  não foi implementado — decisão deliberada do `frontend-builder`: a
+  página de detalhe existente (`MaintenanceDetailPage`, módulo 9) tem
+  "Voltar" apontando para `AdminMaintenance` (fora de
+  `CLIENT_ALLOWED_PAGES`), o que redirecionaria o cliente de volta pra
+  "Minha Unidade" de forma confusa. A lista já mostra status/prioridade/
+  agendamento/cancelar inline. Candidato a um detalhe próprio do
+  cliente numa rodada futura, se o volume de informação justificar.
+- `FinancingProcess` continua só leitura pelo cliente (fiel ao
+  original — nenhuma tela, nem admin, cria/edita) — se o produto quiser
+  que a própria equipe registre o processo de financiamento, precisa de
+  uma aba nova em `FinanceAccountDetailPage`, fora do escopo deste
+  módulo.
+
 ## Achados de segurança corrigidos (não aceitos como risco)
 
 - **Módulo 6 — Comissões** (auditoria de 2026-07-21): achado **alto**
@@ -427,6 +485,22 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   no formulário de projeto para quem não é admin,
   `ProjectForm.tsx`). Testado contra o banco remoto
   (`supabase/tests/0047_project_cost_fields_isolation.sql`).
+- **Módulo 11 — Portal do Cliente**: achado **alto** de `financing_process`
+  (tabela nova deste módulo, `0052`) ter ficado sem NENHUMA policy de RLS
+  por um commit inteiro — qualquer `authenticated`, de qualquer tenant,
+  podia ler/gravar qualquer linha. Corrigido na mesma leva de RLS deste
+  módulo (`supabase/migrations/0053_rls_client_portal_access.sql`), antes
+  de qualquer deploy.
+- **Módulo 11 — Portal do Cliente**: achado **médio** de vazamento
+  potencial entre clientes do mesmo tenant no bucket `maintenance-photos`
+  — a policy de SELECT da equipe interna isola só por `tenant_id`, e
+  copiá-la 1:1 para `tenant_role='cliente'` permitiria um cliente ler
+  foto de OUTRO cliente do mesmo tenant (o path do objeto não codifica
+  dono, só tenant). Corrigido com policy própria para `cliente`, exigindo
+  posse real (`owner_id = auth.uid()` do próprio upload OU o path constar
+  no `photos` de um chamado do próprio cliente via função
+  `client_owns_maintenance_photo`) — nunca chegou a produção
+  (`supabase/migrations/0054_rls_maintenance_photos_client.sql`).
 
 ## Riscos aceitos (não corrigidos, decisão consciente do usuário)
 
@@ -518,4 +592,5 @@ auditoria do módulo 8, mas não específico dele)
 - [x] Módulo 8 (Vistorias: templates de checklist, execução com fotos e assinaturas, fechando loop da Unidade) implementado — https://vivlar.vercel.app
 - [x] Módulo 9 (Manutenção pós-entrega: lista + detalhe, upload de fotos, fechando loop da Unidade) implementado, auditado e em produção — https://vivlar.vercel.app
 - [x] Módulo 10 (Investidores: cadastro, vínculo a projetos, aportes, retornos, dashboard consolidado) implementado — https://vivlar.vercel.app
+- [x] Módulo 11 (Portal do Cliente: minha unidade, financeiro + financiamento, manutenções com abertura/cancelamento de chamado) implementado, pendente de auditoria e deploy
 - [ ] Auditoria de arquitetura geral rodada
