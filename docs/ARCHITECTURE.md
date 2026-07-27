@@ -626,6 +626,25 @@ auditoria do módulo 8, mas não específico dele)
   hook devolve, independente da tela), só um flash visual de layout
   errado. Mesmo padrão de comportamento herdado do original.
 
+**Módulo 12 — Portal do Investidor** (auditoria de 2026-07-27)
+- Alto (dependência, reincidente do módulo 11, não código novo deste
+  módulo): mesmo advisory de `react-router-dom` (GHSA-qwww-vcr4-c8h2),
+  mesma avaliação — vetor RSC não se aplica a este app (`<BrowserRouter>`).
+  Continua acompanhado, não bloqueia deploy.
+- Baixo: comentário da migration `0056_investor_operational_result.sql`
+  apontava para um arquivo de teste com nome errado
+  (`0056_investor_operational_result_isolation.sql`, que não existe —
+  a cobertura real está em `0055_investor_portal_isolation.sql`,
+  testes 4-6). Corrigido o comentário; nenhuma lacuna de teste de
+  verdade (a auditoria confirmou a cobertura via leitura do SQL e do
+  teste existente).
+- Módulo é 100% leitura pelo papel `investidor` (nenhuma mutation) —
+  auditoria confirmou defesa em profundidade real (RLS bloqueia
+  insert/update mesmo via chamada direta, não só ausência de botão na
+  UI) e que a bifurcação por `tenantRole` em `InvestorDashboardPage`
+  impede qualquer caminho de renderizar o dashboard consolidado (com
+  dado de outros investidores) para quem não é equipe interna.
+
 ## Desvios do padrão do CLAUDE.md
 
 - Etapa 2 (`ui-prototyper` + `prototypes/`) substituída por

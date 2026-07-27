@@ -223,6 +223,6 @@ grant execute on function public.get_project_operational_result(uuid) to authent
 -- Bypass de `service_role`: nenhuma Edge Function deste modulo existe hoje
 -- -- mesma ressalva de 0045/0051/0055.
 --
--- Ver supabase/tests/0056_investor_operational_result_isolation.sql para o
+-- Ver supabase/tests/0055_investor_portal_isolation.sql (testes 4-6) para o
 -- teste (a) autorizacao por papel/vinculo, (b) valor batendo com calculo
 -- manual, (c) regressao dos testes antigos de 0045.
