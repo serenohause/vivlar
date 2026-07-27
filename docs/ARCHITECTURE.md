@@ -476,6 +476,68 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
 - Sem exportação em PDF, sem criação de `Notification` — mesmas
   decisões já tomadas no módulo 10.
 
+**Módulo 13 — Espelho de Vendas**
+- **Primeira superfície `anon` (sem login) do projeto inteiro**: até
+  este módulo, toda RLS assumia `authenticated` com claim de
+  `tenant_id`/`tenant_role`. Aqui não há sessão nenhuma — um visitante
+  da internet lê o catálogo e pode criar cliente/negócio de verdade
+  (reserva). Decisão de arquitetura (aprovada com o usuário antes de
+  construir): nenhum grant direto de tabela a `anon` em nada
+  (`projects`/`units`/`clients`/`deals`/`status_transitions`/`brokers`/
+  `public_leads`) — tudo passa por 4 funções `SECURITY DEFINER`
+  (`get_public_project`, `get_public_units`, `create_public_lead`,
+  `create_public_reservation`, `0059_rls_espelho_vendas.sql`), cada
+  uma validando `project.is_public`/pertencimento antes de qualquer
+  leitura ou escrita.
+- **Condição de corrida do original, fechada por completo**:
+  `LeadForm.jsx` verificava disponibilidade da unidade e só então
+  criava o negócio, em 2 passos separados no client — duas pessoas
+  clicando "reservar" ao mesmo tempo podiam ambas passar pela
+  verificação. `create_public_reservation` trava a linha da unidade
+  (`SELECT ... FOR UPDATE`) dentro de uma única transação; testado com
+  duas conexões de banco reais e concorrentes (não só sequencial), a
+  segunda falha com erro claro. Não é invenção de funcionalidade nova
+  — é a mesma reserva, só sem a falha de projeto que o original tinha.
+- **Sem rate limiting/captcha** (decisão consciente do usuário, aceita
+  como risco — ver seção de riscos aceitos abaixo): o formulário
+  público pode ser abusado por script para reservar unidades em massa
+  e travar vendas de verdade. Fiel ao original, que também não tinha
+  nenhuma proteção.
+- **`deals.broker_id` sempre nulo em reservas públicas**:
+  `projects.broker_responsavel_id`, usado pelo original para atribuir
+  corretor automaticamente, não existe no schema (excluído
+  deliberadamente no módulo 3 do catálogo). Se o produto quiser
+  atribuição automática de corretor na reserva pública, precisa dessa
+  coluna de volta — schema novo, fora deste módulo.
+- **`projects.slug` só é único por tenant, não globalmente**: a rota
+  pública é `/e/:slug` sem nenhum contexto de tenant (não há como
+  ter — é anônimo). Hoje não é um problema visível (só 1 tenant real em
+  produção), mas se dois tenants um dia escolherem o mesmo slug, a
+  função pública não tem como saber qual dos dois servir. Não é
+  vazamento de dado privado (ambos precisam ser `is_public=true` para
+  aparecer), é um bug de roteamento em potencial — revisitar se o
+  produto ganhar múltiplos tenants ativos com espelho de vendas
+  público.
+- **`units.svg_path_id` não existe**: `ImplantacaoInterativa.jsx`
+  (original) tem um modo de mapa interativo por SVG de implantação,
+  além do modo grid. A coluna que liga cada unidade a uma área do SVG
+  nunca foi criada em nenhuma migration — o modo grid (totalmente
+  funcional, usado em todo o teste real) foi portado; o modo mapa fica
+  estruturalmente presente no componente mas inerte. Candidato a
+  fechar numa rodada futura se o produto quiser o mapa visual.
+- Sem tela de gestão de leads pro admin: confirmado que também não
+  existe no original (`PublicLead` só é criado, nunca listado/gerido
+  por nenhuma tela) — RLS de leitura/atualização por
+  `admin`/`comercial`/`administrativo` já existe em `public_leads`,
+  esperando a tela.
+- Sem captura de `ip_address` real em `public_leads` (campo existe,
+  fica sempre nulo) — não há como capturar IP de origem de dentro de
+  uma RPC chamada via client sem infraestrutura adicional (proxy/edge
+  function); mesma limitação seria necessária no original.
+- Sem `Notification` (entidade não existe no projeto, débito
+  transversal já conhecido) — `LeadForm.jsx` cria uma a cada
+  submissão no original, não portado.
+
 ## Achados de segurança corrigidos (não aceitos como risco)
 
 - **Módulo 6 — Comissões** (auditoria de 2026-07-21): achado **alto**
@@ -549,6 +611,17 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
 Achados médios/baixos aceitos como risco por ora, por módulo (achados
 críticos/altos são sempre corrigidos antes do deploy, não aceitos —
 ver seção acima para o único caso alto até agora):
+
+**Módulo 13 — Espelho de Vendas** (decisão tomada com o usuário
+*antes* de construir, 2026-07-27, não um achado de auditoria)
+- Sem rate limiting/captcha no formulário público (`create_public_lead`/
+  `create_public_reservation`) — um script poderia submeter leads em
+  massa ou reservar todas as unidades de um empreendimento
+  repetidamente (cada reserva expira em `reserva_horas`, mas nada
+  impede reservar de novo assim que expira), na prática travando
+  vendas reais por um período. Aceito por ora, fiel ao original (que
+  também não tinha proteção nenhuma); revisitar com um mecanismo de
+  limite por IP/sessão se abuso real for observado em produção.
 
 **Transversal — referência cross-tenant via FK não validada** (achado da
 auditoria do módulo 8, mas não específico dele)
@@ -671,4 +744,5 @@ auditoria do módulo 8, mas não específico dele)
 - [x] Módulo 10 (Investidores: cadastro, vínculo a projetos, aportes, retornos, dashboard consolidado) implementado — https://vivlar.vercel.app
 - [x] Módulo 11 (Portal do Cliente: minha unidade, financeiro + financiamento, manutenções com abertura/cancelamento de chamado) implementado, auditado e em produção — https://vivlar.vercel.app
 - [x] Módulo 12 (Portal do Investidor: dashboard pessoal, meus projetos com resultado operacional, meus aportes, meus retornos) implementado, auditado e em produção — https://vivlar.vercel.app
+- [x] Módulo 13 (Espelho de Vendas: site público por slug, captação de lead, reserva de unidade com trava atômica) implementado, pendente de auditoria e deploy
 - [ ] Auditoria de arquitetura geral rodada

@@ -36,6 +36,7 @@ região `sa-east-1`, ref `hppeqpmxupfghymkulne`)
 - ✅ Módulo 10 — Investidores (cadastro, vínculo a projetos, aportes, retornos, dashboard consolidado)
 - ✅ Módulo 11 — Portal do Cliente (minha unidade, financeiro + financiamento, manutenções com abertura/cancelamento de chamado)
 - ✅ Módulo 12 — Portal do Investidor (dashboard pessoal, meus projetos com resultado operacional agregado, meus aportes, meus retornos)
+- 🔜 Módulo 13 — Espelho de Vendas (site público por slug, captação de lead, reserva de unidade com trava atômica no banco) implementado, ainda **pendente de auditoria de segurança e deploy**
 
 ## Como o projeto é construído (processo, pra sessões novas entenderem)
 
