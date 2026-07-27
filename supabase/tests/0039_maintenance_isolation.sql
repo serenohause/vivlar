@@ -52,11 +52,15 @@
 -- 1. Tenant A (papel interno) nao le nem escreve `maintenance_requests` nem
 --    storage.objects do Tenant B, e vice-versa (isolamento nos dois
 --    sentidos).
--- 2. Usuario com tenant_role = 'cliente' ou 'investidor' do tenant CERTO nao
---    enxerga NENHUMA linha em `maintenance_requests` nem em storage.objects,
---    e nao consegue inserir em nenhuma delas -- prova que a RLS nega por
---    papel, nao so por tenant (confirma o escopo desta rodada: sem portal
---    do cliente, so equipe interna mexe em manutencao).
+-- 2. Usuario com tenant_role = 'investidor' do tenant CERTO nao enxerga
+--    NENHUMA linha em `maintenance_requests` nem em storage.objects, e nao
+--    consegue inserir em nenhuma delas -- prova que a RLS nega por papel,
+--    nao so por tenant. Usuario com tenant_role = 'cliente' nao enxerga/
+--    insere linha de `maintenance_requests` que nao seja sua, mas DESDE
+--    0054_rls_maintenance_photos_client.sql consegue inserir na PROPRIA
+--    pasta de `storage.objects` (comportamento intencional do Portal do
+--    Cliente -- isolamento cliente-a-cliente real coberto em
+--    supabase/tests/0054_maintenance_photos_client_isolation.sql).
 -- 3. Usuario com tenant_role in ('admin','comercial','administrativo') do
 --    tenant certo consegue criar um chamado, fazer upload no bucket
 --    `maintenance-photos` e ATUALIZAR o chamado (update normal, ex: status/
@@ -195,11 +199,27 @@ end $$;
 reset role;
 
 -- ---------------------------------------------------------------------
--- TESTE 3: usuario 'cliente' do tenant A (tenant certo, papel errado) nao
--- enxerga NENHUMA linha em maintenance_requests nem storage.objects, mesmo
--- o dado do proprio tenant existindo de verdade -- e nao consegue inserir
--- em nenhuma delas. Confirma o escopo desta rodada: sem portal do cliente,
--- so equipe interna mexe em manutencao.
+-- TESTE 3: usuario 'cliente' do tenant A nao enxerga NENHUMA linha de
+-- `maintenance_requests` que nao seja sua (aqui, nenhuma -- este usuario
+-- sintetico nao tem `clients.user_id` vinculado a nenhum client_id usado
+-- neste script) e nao consegue inserir um chamado que nao seja seu (client_id
+-- que nao possui, sem deal/unit associado -- 0053 exige posse real via
+-- client_owns_client_record/client_owns_unit/client_owns_project).
+--
+-- ATUALIZADO (0054_rls_maintenance_photos_client.sql): desde que o Portal do
+-- Cliente existe (0053/0054), `tenant_role = 'cliente'` GANHOU select/insert
+-- proprios em `maintenance_requests` (0053, so as proprias linhas) e em
+-- `storage.objects` do bucket `maintenance-photos` (0054, so na propria
+-- pasta do tenant, select restrito por posse via `client_owns_maintenance_photo`/
+-- `owner`) -- NAO mais "nenhum acesso por papel", como este teste assumia
+-- quando escrito (0039, antes do portal existir). Este bloco foi ajustado
+-- para refletir a regra atual: cliente insere na PROPRIA pasta do bucket
+-- (0054) mas continua sem conseguir ler/inserir uma linha de
+-- `maintenance_requests` de OUTRO client_id (sem posse real). Teste de
+-- isolamento cliente-a-cliente completo (incluindo storage) fica em
+-- supabase/tests/0054_maintenance_photos_client_isolation.sql -- este
+-- arquivo (0039) continua cobrindo o caso "papel errado" para 'investidor'
+-- (TESTE 4, inalterado) e a equipe interna.
 -- ---------------------------------------------------------------------
 
 select set_config(
@@ -235,17 +255,41 @@ begin
   end if;
 end $$;
 
+-- 3c ATUALIZADO por 0054_rls_maintenance_photos_client.sql: cliente do
+-- tenant certo AGORA consegue fazer upload na PROPRIA pasta do bucket
+-- (comportamento intencional, ver racional completo em 0054) -- isto NAO e
+-- mais um caso de "papel bloqueado por completo". O caso que continua
+-- bloqueado (cliente lendo/enumerando foto de OUTRO cliente do mesmo
+-- tenant) e coberto em detalhe por
+-- supabase/tests/0054_maintenance_photos_client_isolation.sql, no com dois
+-- clients/users reais (este script, 0039, so tem UM usuario 'cliente'
+-- sintetico, insuficiente para provar isolamento cliente-a-cliente).
+do $$
+declare v_obj_id uuid;
+begin
+  insert into storage.objects (bucket_id, name, owner)
+    values ('maintenance-photos', 'f2000000-0000-0000-0000-00000000000a/tentativa-cliente.jpg', 'f1000000-0000-0000-0000-000000000002')
+    returning id into v_obj_id;
+
+  if v_obj_id is null then
+    raise exception 'FALHOU (3c): tenant_role=cliente do tenant certo deveria conseguir inserir na PROPRIA pasta do bucket maintenance-photos (0054) -- upload real do Portal do Cliente quebraria';
+  end if;
+end $$;
+
+-- Mas o mesmo usuario 'cliente' NAO consegue inserir na pasta de OUTRO
+-- tenant (WITH CHECK de 0054 continua isolando por tenant_id do path, mesmo
+-- criterio ja usado para a equipe interna em 0039).
 do $$
 declare v_insert_ok boolean := false;
 begin
   begin
     insert into storage.objects (bucket_id, name, owner)
-    values ('maintenance-photos', 'f2000000-0000-0000-0000-00000000000a/tentativa-cliente.jpg', 'f1000000-0000-0000-0000-000000000002');
+    values ('maintenance-photos', 'f2000000-0000-0000-0000-00000000000b/tentativa-cliente-cross-tenant.jpg', 'f1000000-0000-0000-0000-000000000002');
     v_insert_ok := true;
   exception when others then v_insert_ok := false;
   end;
   if v_insert_ok then
-    raise exception 'FALHOU (3c): tenant_role=cliente conseguiu inserir em storage.objects -- RLS nao esta bloqueando por papel';
+    raise exception 'FALHOU (3d): tenant_role=cliente conseguiu inserir em storage.objects na pasta de OUTRO tenant -- WITH CHECK nao esta isolando por tenant (0054)';
   end if;
 end $$;
 
