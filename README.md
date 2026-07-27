@@ -27,10 +27,12 @@ Outros scripts: `npm run build`, `npm run typecheck`, `npm run lint`, `npm run p
 
 Construído por módulos, cada um deployado separadamente. Status atual e
 lista completa: **`docs/STATUS.md`** (é o que fica atualizado — não
-duplicar a lista aqui). Módulo em produção mais recente: Módulo 12 —
-Portal do Investidor (dashboard pessoal, meus projetos com resultado
-operacional agregado, meus aportes, meus retornos; migrations `0055` e
-`0056` aplicadas ao banco remoto, deploy de 2026-07-27).
+duplicar a lista aqui). Módulo em produção mais recente: Módulo 13 —
+Espelho de Vendas (site público por slug `/e/:slug`, captação de lead,
+reserva de unidade com trava atômica no banco; primeira superfície `anon`
+do sistema — toda leitura/escrita pública passa por 4 funções
+`SECURITY DEFINER`, sem grant direto de tabela a `anon`; migrations
+`0057`-`0059` aplicadas ao banco remoto, deploy de 2026-07-27).
 
 Checklist seguido a cada deploy (ver `deploy-engineer`): auditoria de
 segurança sem achado crítico/alto em aberto, migrations aplicadas na
