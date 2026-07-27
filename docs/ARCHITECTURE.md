@@ -670,5 +670,5 @@ auditoria do módulo 8, mas não específico dele)
 - [x] Módulo 9 (Manutenção pós-entrega: lista + detalhe, upload de fotos, fechando loop da Unidade) implementado, auditado e em produção — https://vivlar.vercel.app
 - [x] Módulo 10 (Investidores: cadastro, vínculo a projetos, aportes, retornos, dashboard consolidado) implementado — https://vivlar.vercel.app
 - [x] Módulo 11 (Portal do Cliente: minha unidade, financeiro + financiamento, manutenções com abertura/cancelamento de chamado) implementado, auditado e em produção — https://vivlar.vercel.app
-- [x] Módulo 12 (Portal do Investidor: dashboard pessoal, meus projetos com resultado operacional, meus aportes, meus retornos) implementado, pendente de auditoria e deploy
+- [x] Módulo 12 (Portal do Investidor: dashboard pessoal, meus projetos com resultado operacional, meus aportes, meus retornos) implementado, auditado e em produção — https://vivlar.vercel.app
 - [ ] Auditoria de arquitetura geral rodada

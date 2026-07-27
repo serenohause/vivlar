@@ -33,9 +33,9 @@ região `sa-east-1`, ref `hppeqpmxupfghymkulne`)
 - ✅ Módulo 7 — Documentos (upload real de arquivo)
 - ✅ Módulo 8 — Vistorias (templates de checklist + execução com fotos/assinatura)
 - ✅ Módulo 9 — Manutenção pós-entrega (lista + detalhe, upload de fotos, só lado interno — sem portal do cliente ainda)
-- ✅ Módulo 10 — Investidores (cadastro, vínculo a projetos, aportes, retornos, dashboard consolidado, só lado interno — sem portal do investidor ainda)
+- ✅ Módulo 10 — Investidores (cadastro, vínculo a projetos, aportes, retornos, dashboard consolidado)
 - ✅ Módulo 11 — Portal do Cliente (minha unidade, financeiro + financiamento, manutenções com abertura/cancelamento de chamado)
-- 🔜 Módulo 12 — Portal do Investidor (dashboard pessoal, meus projetos com resultado operacional agregado, meus aportes, meus retornos) implementado, ainda **pendente de auditoria de segurança e deploy**
+- ✅ Módulo 12 — Portal do Investidor (dashboard pessoal, meus projetos com resultado operacional agregado, meus aportes, meus retornos)
 
 ## Como o projeto é construído (processo, pra sessões novas entenderem)
 
