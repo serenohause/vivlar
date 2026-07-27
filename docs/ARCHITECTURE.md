@@ -605,6 +605,20 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   no `photos` de um chamado do próprio cliente via função
   `client_owns_maintenance_photo`) — nunca chegou a produção
   (`supabase/migrations/0054_rls_maintenance_photos_client.sql`).
+- **Módulo 13 — Espelho de Vendas** (auditoria de 2026-07-27): achado
+  **alto** de XSS armazenado — `ImplantacaoInterativa.tsx` buscava o
+  conteúdo de `projects.implantacao_svg_url` (campo devolvido pela
+  função pública `get_public_project`, lido por qualquer visitante
+  anônimo em `/e/:slug`) e injetava o SVG cru no DOM via
+  `dangerouslySetInnerHTML`, sem sanitização — um SVG malicioso com
+  `<script>`/`<foreignObject>`/atributos `on*` executaria JS no
+  navegador de qualquer visitante. Nenhuma tela ainda escreve nesse
+  campo (só acesso direto ao banco hoje), o que reduzia a
+  probabilidade imediata, mas não a eliminava — e a barreira precisa
+  existir antes que um formulário de edição apareça, não depois.
+  Corrigido sanitizando com DOMPurify (perfil SVG, proibindo
+  explicitamente `script`/`foreignObject`/handlers `on*`) antes de
+  qualquer render — nunca chegou a produção sem a correção.
 
 ## Riscos aceitos (não corrigidos, decisão consciente do usuário)
 
@@ -717,6 +731,23 @@ auditoria do módulo 8, mas não específico dele)
   UI) e que a bifurcação por `tenantRole` em `InvestorDashboardPage`
   impede qualquer caminho de renderizar o dashboard consolidado (com
   dado de outros investidores) para quem não é equipe interna.
+
+**Módulo 13 — Espelho de Vendas** (auditoria de 2026-07-27)
+- Achado **alto** de XSS via SVG não sanitizado — ver seção "Achados de
+  segurança corrigidos" acima, corrigido antes do deploy.
+- Alto (dependência, reincidente dos módulos 11/12, não código novo
+  deste módulo): mesmo advisory de `react-router-dom`
+  (GHSA-qwww-vcr4-c8h2), mesma avaliação — vetor RSC não se aplica a
+  este app. Continua acompanhado, não bloqueia deploy.
+- Baixo/higiene, não específico deste módulo: funções de trigger
+  (`set_updated_at`, `enforce_project_cost_fields_admin_only`,
+  `enforce_maintenance_request_client_cancel_only`) têm grant de
+  `EXECUTE` residual para `PUBLIC` — sem risco prático (retornam tipo
+  `trigger`, não são invocáveis fora de contexto de trigger nem
+  expostas como RPC pelo PostgREST), mas vale revogar numa faxina de
+  RLS futura por higiene.
+- Nenhum achado novo além do risco de spam/abuso já aceito
+  conscientemente antes de construir (ver seção de riscos aceitos).
 
 ## Desvios do padrão do CLAUDE.md
 
