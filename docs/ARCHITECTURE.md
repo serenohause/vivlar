@@ -568,6 +568,22 @@ auditoria do módulo 8, mas não específico dele)
   pra `crm`/`finance`/`inspections`/`units` em nenhum módulo anterior —
   ver seção "Débito técnico" acima, onde isso já está registrado.
 
+**Módulo 11 — Portal do Cliente** (auditoria de 2026-07-27)
+- Alto (dependência, não código do projeto): `react-router-dom@7.18.1`
+  tem advisory ativo (GHSA-qwww-vcr4-c8h2, "RSC Mode CSRF Bypass") no
+  `npm audit`. Avaliado e aceito: a classe de exploração é específica do
+  modo RSC/Framework do React Router — este projeto usa `<BrowserRouter>`
+  (SPA client-side clássico), fora do vetor descrito. Não corrigido
+  porque a correção automática (`npm audit fix --force`) força downgrade
+  com breaking change. Acompanhar e atualizar quando sair uma versão
+  corrigida sem regressão.
+- Redirecionamento de papel `cliente`/`investidor` para fora de rotas
+  não permitidas (`AppShell.tsx`) roda em `useEffect`, então há um
+  instante de render antes do redirect ao acessar uma URL admin
+  diretamente. Não é vazamento de dado (RLS já filtra o que qualquer
+  hook devolve, independente da tela), só um flash visual de layout
+  errado. Mesmo padrão de comportamento herdado do original.
+
 ## Desvios do padrão do CLAUDE.md
 
 - Etapa 2 (`ui-prototyper` + `prototypes/`) substituída por
