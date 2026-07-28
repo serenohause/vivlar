@@ -27,9 +27,25 @@ Outros scripts: `npm run build`, `npm run typecheck`, `npm run lint`, `npm run p
 
 Construído por módulos, cada um deployado separadamente. Status atual e
 lista completa: **`docs/STATUS.md`** (é o que fica atualizado — não
-duplicar a lista aqui). Entrega em produção mais recente: Blocos
-Operacionais do Dashboard Executivo (dentro do Dashboard/Módulo 2 —
-`CriticalAlerts`, `QuickActions`, `TeamPerformance`,
+duplicar a lista aqui). Entrega em produção mais recente: ajuste no
+Dashboard Executivo (dentro do Dashboard/Módulo 2) — Taxa de Conversão
+reposicionada da tela de Catálogo (posição errada) para a fileira
+principal de KPIs (`ExecutiveKpis`), e gráfico novo "Receita Mensal —
+Realizado vs Previsto" (`RevenueChart`, biblioteca `recharts`, dependência
+nova) com dado real dos últimos 6 meses vindo de `payment_installments`,
+no lugar do `Math.random()` do original. Só leitura, sem tabela/migration
+nova, reaproveitando hooks já existentes (`useDeals`,
+`useAllPaymentInstallments`); deploy de 2026-07-28. Auditoria de
+segurança deste ajuste sem achado novo (dado passado ao gráfico é só
+número/string formatada, sem input de usuário; achado alto pré-existente
+de `react-router-dom`, reincidente, continua acompanhado). Smoke test
+pós-deploy: leitura anônima de `payment_installments` e de `deals`
+(tabelas consumidas pelo novo bloco) seguem recusadas em produção (`401
+permission denied`, `42501`, sem `GRANT` pra `anon`), confirmando que o
+isolamento por RLS/tenant segue ativo, não só localmente.
+
+Entrega anterior: Blocos Operacionais do Dashboard Executivo (dentro do
+Dashboard/Módulo 2 — `CriticalAlerts`, `QuickActions`, `TeamPerformance`,
 `UnitFlowDashboard`, `InspectionsDashboard`, `MaintenanceDashboard`; só
 leitura, sem tabela/migration nova, reaproveitando hooks já existentes
 de Deals/Documentos/Financeiro/Unidades/Vistorias/Manutenção/Corretores

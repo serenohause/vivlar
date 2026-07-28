@@ -29,7 +29,10 @@ região `sa-east-1`, ref `hppeqpmxupfghymkulne`)
   blocos operacionais/de equipe — alertas críticos, ações rápidas,
   performance da equipe, fluxo de unidades MCMV, vistorias e manutenção —
   todos só leitura, reaproveitando hooks já existentes de outros módulos,
-  sem tabela/migration nova)
+  sem tabela/migration nova; ajustado depois com Taxa de Conversão
+  reposicionada na fileira de KPIs e gráfico "Receita Mensal —
+  Realizado vs Previsto" com dado real de `payment_installments`
+  (`recharts`), sem migration nova; deploy de 2026-07-28)
 - ✅ Módulo 3 — Catálogo (Terrenos, Projetos, Unidades)
 - ✅ Módulo 4 — CRM (Clientes, Corretores, Imobiliárias, Kanban de negócios)
 - ✅ Módulo 5 — Financeiro (Contas a Receber, Dashboard Financeiro, Inadimplência)
