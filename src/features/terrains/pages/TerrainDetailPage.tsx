@@ -16,10 +16,11 @@ import { useTerrain } from '@/features/terrains/hooks';
 import { pageUrl } from '@/lib/page-url';
 
 /**
- * Tradução de `original-project/src/pages/TerrainDetail.jsx`, sem o mapa
- * interativo (ver `TerrainLocationCard`) e sem o fluxo real de "Transformar
- * em Projeto" (cria um `Project` novo — módulo de Projetos ainda não tem
- * UI; botão fica desabilitado com aviso "Em breve", ver relatório final).
+ * Tradução de `original-project/src/pages/TerrainDetail.jsx`. Mapa
+ * interativo (Leaflet, ver `TerrainLocationCard`/`TerrainPinSelector`) já
+ * implementado. Ainda sem o fluxo real de "Transformar em Projeto" (cria um
+ * `Project` novo — módulo de Projetos ainda não tem UI; botão fica
+ * desabilitado com aviso "Em breve", ver relatório final).
  */
 export function TerrainDetailPage() {
   const { id } = useParams<{ id: string }>();
