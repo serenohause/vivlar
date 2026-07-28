@@ -27,12 +27,36 @@ Outros scripts: `npm run build`, `npm run typecheck`, `npm run lint`, `npm run p
 
 Construído por módulos, cada um deployado separadamente. Status atual e
 lista completa: **`docs/STATUS.md`** (é o que fica atualizado — não
-duplicar a lista aqui). Entrega em produção mais recente: Automação de
-Distrato + Checkup Distrato (dentro de Unidades/Módulo 3 — distrato
-manual/automático de unidade ao aprovar Termo de Distrato, reset
-reativo de fluxo MCMV pós-distrato, reconciliação em lote admin-only
-corrigindo um bug real do original — a tela mostrava "Inconsistências
-Detectadas" mas o botão nunca reconciliava de verdade; RPCs
+duplicar a lista aqui). Entrega em produção mais recente: Sessões
+WhatsApp (item de menu "Sistema" — tela admin-only somente leitura
+sobre `whatsapp_sessions`, monitorando o estado de sessões de um bot de
+WhatsApp externo que nunca foi integrado a este repositório nem ao
+original — feature que já estava pela metade lá, schema+tela existiam
+sem o bot; replicada tão funcional quanto o original, sem inventar a
+integração que falta; migrations 0072-0073; deploy de 2026-07-28).
+Migrations `0072`-`0073` confirmadas sincronizadas entre local e
+remoto (`npx supabase migration list --linked`) antes do deploy. RLS
+confirmada habilitada na prática (`relrowsecurity = true` via consulta
+a `pg_class` contra o projeto remoto) na tabela nova — SELECT
+restrito a `tenant_role = 'admin'` do tenant do claim, sem nenhuma
+policy de INSERT/UPDATE/DELETE (tabela genuinamente só-leitura por
+desenho: nenhum código, no original ou aqui, cria/atualiza esta
+entidade). Grants de `insert`/`update` concedidos por engano numa
+migration anterior foram revogados de `authenticated` na mesma
+migration da RLS, e `anon` segue sem nenhum privilégio (default já
+bloqueado desde a migration `0003`). Auditoria de segurança deste
+módulo sem achado nenhum, de nenhuma severidade. Smoke test pós-deploy:
+chamada anônima direta a `whatsapp_sessions` via REST em produção
+recusada (`401`/`permission denied for table whatsapp_sessions`,
+`42501`, sem `GRANT` pra `anon`), confirmando que o isolamento por RLS
+segue ativo, não só localmente.
+
+Entrega anterior: Automação de Distrato + Checkup Distrato (dentro de
+Unidades/Módulo 3 — distrato manual/automático de unidade ao aprovar
+Termo de Distrato, reset reativo de fluxo MCMV pós-distrato,
+reconciliação em lote admin-only corrigindo um bug real do original —
+a tela mostrava "Inconsistências Detectadas" mas o botão nunca
+reconciliava de verdade; RPCs
 `apply_unit_distrato`/`check_and_reset_unit_mcmv_flow`/
 `run_distrato_checkup`, migrations 0069-0071; deploy de 2026-07-28).
 Migrations `0069`-`0071` confirmadas sincronizadas entre local e
@@ -56,7 +80,7 @@ denied`, sem `GRANT` pra `anon`) e leitura anônima de `units` segue
 recusada (`401 permission denied`), confirmando que o isolamento por
 RLS segue ativo, não só localmente.
 
-Entrega anterior: Checkup Financeiro (dentro do Financeiro/Módulo 5 —
+Entrega anterior a essa: Checkup Financeiro (dentro do Financeiro/Módulo 5 —
 saneamento transacional de carteiras/parcelas duplicadas, campos
 inconsistentes e atraso não marcado, via RPC `run_finance_checkup`,
 admin-only; deploy de 2026-07-28).

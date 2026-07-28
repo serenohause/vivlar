@@ -1120,7 +1120,8 @@ auditoria do módulo 8, mas não específico dele)
   fluxo MCMV, reconciliação em lote admin-only corrigindo um bug real
   do original) implementado, auditado (sem achado crítico/alto) e em
   produção — https://vivlar.vercel.app
-- [ ] Sessões WhatsApp (tela admin-only somente leitura — feature que
+- [x] Sessões WhatsApp (tela admin-only somente leitura — feature que
   já estava pela metade no original, sem bot/integração nenhuma)
-  implementado — auditoria e deploy pendentes
+  implementado, auditado (sem achado) e em produção —
+  https://vivlar.vercel.app
 - [ ] Auditoria de arquitetura geral rodada
