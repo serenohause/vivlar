@@ -89,7 +89,7 @@ export function NotificationBell() {
                 <>
                   <div className={cn('w-2 h-2 rounded-full mt-1.5 shrink-0', dotColor)} />
 
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-start justify-between gap-2">
                       <h4
                         className={cn(
@@ -101,9 +101,9 @@ export function NotificationBell() {
                       </h4>
                       <span className="text-xs text-slate-500 whitespace-nowrap">{formatNotificationTime(notification.created_at)}</span>
                     </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 line-clamp-2">{notification.message}</p>
+                    <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400 line-clamp-2">{notification.message}</p>
                     {typeof notification.meta?.project_name === 'string' && (
-                      <p className="text-xs text-slate-500 mt-1">Projeto: {notification.meta.project_name}</p>
+                      <p className="text-xs text-slate-500">Projeto: {notification.meta.project_name}</p>
                     )}
                   </div>
 
@@ -125,7 +125,7 @@ export function NotificationBell() {
               );
 
               const rowClassName = cn(
-                'flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer',
+                'flex items-start gap-3 px-4 py-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer',
                 notification.status === 'NOVA' && 'bg-blue-50 dark:bg-blue-950/20'
               );
 

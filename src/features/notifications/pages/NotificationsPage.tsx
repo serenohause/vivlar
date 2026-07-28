@@ -207,7 +207,7 @@ export function NotificationsPage() {
       {filteredNotifications.length === 0 ? (
         <EmptyState icon={Bell} title="Nenhuma notificação" description="Você não tem notificações no momento" />
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {filteredNotifications.map((notification) => (
             <NotificationRow
               key={notification.id}
@@ -246,18 +246,18 @@ function NotificationRow({ notification, isAdmin, onMarkAsRead, onDelete, markAs
 
   const content = (
     <Card className={`border-0 shadow-sm transition-all hover:shadow-md ${isNew ? 'border-l-4 border-l-blue-500 bg-blue-50' : 'bg-card'} ${detailLink ? 'cursor-pointer' : ''}`}>
-      <CardContent className="p-4">
+      <CardContent className="p-5">
         <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-1 items-start gap-3">
+          <div className="flex flex-1 items-start gap-4">
             <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${severityConfig.color}`}>
               <TypeIcon className="h-5 w-5 text-white" />
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="mb-1 flex flex-wrap items-center gap-2">
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h3 className="font-semibold text-foreground">{notification.title}</h3>
                 {isNew && <Badge className="bg-blue-500 text-xs text-white">Nova</Badge>}
               </div>
-              <p className="mb-2 text-sm text-muted-foreground">{notification.message}</p>
+              <p className="text-sm leading-relaxed text-muted-foreground">{notification.message}</p>
               <div className="flex flex-wrap items-center gap-3 text-xs">
                 <Badge variant="outline" className="text-xs">
                   {typeConfig.label}
