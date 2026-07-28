@@ -1251,6 +1251,19 @@ auditoria do módulo 8, mas não específico dele)
 - Alto (dependência, reincidente, não desta mudança): mesmo advisory
   de `react-router-dom`. Continua acompanhado.
 
+**Manutenções — fidelidade visual + PDF** (auditoria de 2026-07-28)
+- Nenhum achado crítico/alto. Confirmado: signed URL de fotos chamada
+  fora de hook React ainda passa pela mesma RLS de storage
+  (`maintenance_photos_bucket_select_tenant_team`) — sem bypass; cadeia
+  `requests`→`photos`→signed URL inteira escopada por tenant, sem gap;
+  `fetch` do PDF só busca signed URLs do próprio Storage, nunca URL
+  arbitrária de input livre; badge "Criado Por" não vaza cliente de
+  outro tenant (`clients` já filtrado por RLS); geração de PDF 100%
+  local (`doc.save()`, sem upload); `StatsCard` é só apresentação, sem
+  dado novo. `jspdf`/`jspdf-autotable` sem vulnerabilidade conhecida.
+- Alto (dependência, reincidente, não desta mudança): mesmo advisory
+  de `react-router-dom`. Continua acompanhado.
+
 ## Desvios do padrão do CLAUDE.md
 
 - Etapa 2 (`ui-prototyper` + `prototypes/`) substituída por
