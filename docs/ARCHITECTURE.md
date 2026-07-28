@@ -724,6 +724,37 @@ incremental; porta `Dashboard.jsx` + `CriticalAlerts`/`QuickActions`/
   com fallback pra `created_at` só quando nunca houve atividade
   registrada.
 
+**Dashboard Executivo — Taxa de Conversão reposicionada + gráfico de
+Receita Mensal** (correção pós-revisão do usuário sobre a leva
+anterior de blocos operacionais)
+- Taxa de Conversão já existia (dentro do bloco Catálogo), só estava
+  mal posicionada frente ao original — movida pra fileira principal de
+  KPIs (`ExecutiveKpis`, 3º de 4 cards: Receita/Deals/Conversão/
+  Ticket), mesma ordem do `Dashboard.jsx` original.
+- **Gráfico "Receita Mensal — Realizado vs Previsto" — upgrade
+  deliberado sobre o original, não port literal**: no original
+  (`RevenueChart.jsx`), as 3 séries (realizado/previsto/projetado) são
+  `Math.random()` — 100% fake, sem lógica de negócio nenhuma por trás
+  (motivo original de ter ficado de fora da primeira leva). Construído
+  agora com dado real de `payment_installments`: Realizado = soma de
+  `valor_pago` por mês de `data_pagamento` (parcelas `pago`); Previsto
+  = soma de `valor_previsto` por mês de `vencimento` (parcelas não
+  `cancelado`, pagas ou não — "o que estava programado entrar naquele
+  mês"). Série "projetado" do original NÃO portada — também era só
+  `Math.random()`, sem metodologia real equivalente pra substituir sem
+  inventar uma nova (fora do que foi pedido).
+- Biblioteca `recharts` adicionada como dependência (mesma lib do
+  original) — impacto no bundle principal: +380KB raw / +109KB gzip.
+  Bundle principal já excedia 500KB antes desta mudança (projeto não
+  faz code-splitting) — não é regressão nova, mas registrado caso vire
+  prioridade.
+- Cálculo de "Realizado por mês" deste gráfico é deliberadamente
+  diferente de `calculateMonthlyRevenue` (já existente, usado no
+  Financeiro Detalhado) — esse olha `vencimento` pras duas séries; o
+  do Dashboard Executivo usa `data_pagamento` pro Realizado. Divergência
+  documentada no código pra quem comparar os dois KPIs não achar que é
+  bug.
+
 **Sessões WhatsApp** (fora da numeração de módulos — porta
 `pages/WhatsAppSessions.jsx` do original)
 - **Feature já pela metade no original, replicada tão funcional quanto
