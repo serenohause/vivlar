@@ -323,17 +323,48 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   pra manutenção.
 - Sem criação de `Notification` ao mudar status/agendar (mesmo critério
   já usado nos módulos anteriores — tabela não existe no projeto novo).
-- Sem exportação em PDF (`exportMaintenanceToPDF`,
-  `exportMaintenanceRequestToPDF` do original) — funcionalidade
-  secundária, não essencial ao fluxo abrir → agendar → resolver.
+- **Exportação em PDF — parcialmente fechada numa leva posterior**
+  (pedido do usuário, "layout muito diferente do original"): o
+  relatório da LISTA (`exportMaintenanceToPDF`/`maintenanceReportPdf.jsx`
+  → `exportMaintenanceReportToPdf`,
+  `src/features/maintenance/utils/maintenance-report-pdf.ts`) foi
+  portado — modos resumo/completo, tabela via `jspdf-autotable`, fotos
+  embutidas como base64 (resolvidas via signed URL do bucket
+  `maintenance-photos`, mesma chamada de `useMaintenancePhotoSignedUrl`
+  usada fora de um componente React). O relatório POR SOLICITAÇÃO
+  individual (`exportMaintenanceRequestToPDF`,
+  `maintenanceRequestPdf.jsx`, chamado de dentro de
+  `MaintenanceDetail.jsx`) continua fora — não fazia parte do pedido
+  (que era a tela de listagem), fica como débito à parte.
+- `jspdf`/`jspdf-autotable` — primeira geração de PDF client-side do
+  rebuild, +144KB gzip no bundle principal (chunk `html2canvas`
+  separado, carregado só sob demanda, não afeta o carregamento inicial
+  da tela — é dependência opcional do `jsPDF` pra `doc.html()`, que não
+  usamos). Vale revisitar code-splitting geral do bundle no futuro
+  (aviso de chunk >500KB já existia antes, agravado por esta adição).
+- "Gerado por" no PDF usa só o e-mail do usuário logado (não "nome
+  (email)" como o original) — mesma limitação já documentada em
+  Vistoriador/Responsável: `tenant_users` não expõe nome de outros
+  usuários ao frontend.
 - `suggested_date` existe no schema (documentado desde a migration como
-  "sugerida pelo cliente ao abrir o chamado") mas sem write path nesta
-  rodada, já que a criação é só pelo lado admin — só ganha uso real
-  quando/se o Portal do Cliente for construído.
+  "sugerida pelo cliente ao abrir o chamado") — nota **desatualizada**
+  (dizia "sem write path... só ganha uso real quando/se o Portal do
+  Cliente for construído"): o Portal do Cliente (Módulo 11) já existe
+  e `ClientMaintenanceCreateDialog.tsx` já escreve `suggested_date` de
+  verdade — write path fechado, não é mais débito.
 - Sem bloco de manutenção no Dashboard Executivo: confirmado que
   `Dashboard.jsx` original desestrutura `maintenance` de
   `useDashboardData` mas nunca renderiza nada com isso — mesmo padrão
   de código morto já visto em Comissões/Vistorias.
+- **Layout da lista corrigido numa leva posterior** (pedido do usuário,
+  "layout muito diferente do original"): KPIs sem ícone (criado
+  `src/components/shared/StatsCard.tsx`, tradução do `StatsCard.jsx`
+  original, usado só aqui por enquanto — outras telas podem adotar
+  depois); coluna "Criado Por" (badge Cliente/Operador) removida numa
+  leva anterior por "não se aplicar sem portal do cliente" — restaurada
+  porque essa premissa também estava desatualizada (mesmo motivo do
+  `suggested_date` acima: Módulo 11 já existe); botão "Ver" sem texto;
+  dialog de exclusão sem ícone de alerta. Todos corrigidos.
 - **Achado transversal, não específico deste módulo — fechado numa
   leva posterior**: o badge de contagem da sidebar
   (`useNavigationBadges`, `src/features/dashboard/hooks.ts`) só tinha
