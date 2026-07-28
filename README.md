@@ -27,8 +27,21 @@ Outros scripts: `npm run build`, `npm run typecheck`, `npm run lint`, `npm run p
 
 Construído por módulos, cada um deployado separadamente. Status atual e
 lista completa: **`docs/STATUS.md`** (é o que fica atualizado — não
-duplicar a lista aqui). Entrega em produção mais recente: Sessões
-WhatsApp (item de menu "Sistema" — tela admin-only somente leitura
+duplicar a lista aqui). Entrega em produção mais recente: Blocos
+Operacionais do Dashboard Executivo (dentro do Dashboard/Módulo 2 —
+`CriticalAlerts`, `QuickActions`, `TeamPerformance`,
+`UnitFlowDashboard`, `InspectionsDashboard`, `MaintenanceDashboard`; só
+leitura, sem tabela/migration nova, reaproveitando hooks já existentes
+de Deals/Documentos/Financeiro/Unidades/Vistorias/Manutenção/Corretores
+— nenhuma query nova direta ao Supabase dentro de componente; deploy de
+2026-07-28). Auditoria de segurança deste módulo sem achado nenhum, de
+nenhuma severidade. Smoke test pós-deploy: leitura anônima de `deals` e
+de `maintenance_requests` (tabelas consumidas pelos novos blocos)
+seguem recusadas em produção (`401 permission denied`, `42501`, sem
+`GRANT` pra `anon`), confirmando que o isolamento por RLS/tenant segue
+ativo, não só localmente.
+
+Entrega anterior: Sessões WhatsApp (item de menu "Sistema" — tela admin-only somente leitura
 sobre `whatsapp_sessions`, monitorando o estado de sessões de um bot de
 WhatsApp externo que nunca foi integrado a este repositório nem ao
 original — feature que já estava pela metade lá, schema+tela existiam

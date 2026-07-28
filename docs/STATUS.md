@@ -25,7 +25,11 @@ si).
 região `sa-east-1`, ref `hppeqpmxupfghymkulne`)
 
 - ✅ Módulo 1 — Auth (login, signup, criação de empresa/tenant)
-- ✅ Módulo 2 — Dashboard (menu lateral + página inicial)
+- ✅ Módulo 2 — Dashboard (menu lateral + página inicial; expandido com 6
+  blocos operacionais/de equipe — alertas críticos, ações rápidas,
+  performance da equipe, fluxo de unidades MCMV, vistorias e manutenção —
+  todos só leitura, reaproveitando hooks já existentes de outros módulos,
+  sem tabela/migration nova)
 - ✅ Módulo 3 — Catálogo (Terrenos, Projetos, Unidades)
 - ✅ Módulo 4 — CRM (Clientes, Corretores, Imobiliárias, Kanban de negócios)
 - ✅ Módulo 5 — Financeiro (Contas a Receber, Dashboard Financeiro, Inadimplência)
