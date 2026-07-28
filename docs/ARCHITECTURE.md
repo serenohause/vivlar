@@ -1145,6 +1145,15 @@ auditoria do módulo 8, mas não específico dele)
   URL construída a partir de input de usuário; sem mutation nenhuma
   (só leitura).
 
+**Taxa de Conversão + Gráfico de Receita Mensal** (auditoria de
+2026-07-28)
+- Nenhum achado novo. Confirmado: sem query direta ao Supabase (só
+  reaproveita `useDeals`/`useAllPaymentInstallments` já auditados),
+  dado passado ao `recharts` é só número/string formatada
+  internamente (sem input de usuário, sem risco de injeção).
+- Alto (dependência, reincidente, não desta mudança): mesmo advisory
+  de `react-router-dom`. Continua acompanhado.
+
 ## Desvios do padrão do CLAUDE.md
 
 - Etapa 2 (`ui-prototyper` + `prototypes/`) substituída por
