@@ -620,6 +620,14 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   comportamento de referência pra portar. Revisitar se o produto
   quiser notificar investidores de algo no mural futuramente.
 
+**Comparador de Unidades (dentro do Catálogo/Módulo 3)**
+- Sem débito técnico novo: tela só de leitura, reaproveita hooks já
+  existentes (`useUnits`, `useProjects`, `useDocuments`,
+  `useFinanceAccounts`, `useAllPaymentInstallments`) mais um hook novo
+  de leitura (`useUnitStatusTransitions`, listagem geral de
+  `status_transitions` filtrada por `unit_id`), sem tabela ou política
+  de RLS nova. Auditoria de segurança sem achado.
+
 ## Achados de segurança corrigidos (não aceitos como risco)
 
 - **Módulo 6 — Comissões** (auditoria de 2026-07-21): achado **alto**
@@ -936,4 +944,7 @@ auditoria do módulo 8, mas não específico dele)
 - [x] Módulo 13 (Espelho de Vendas: site público por slug, captação de lead, reserva de unidade com trava atômica) implementado, auditado e em produção — https://vivlar.vercel.app
 - [x] Módulo 14 (Configurações: convite de equipe via lista de espera, vínculo cliente↔usuário, documentos obrigatórios por status, exclusão de conta) implementado, auditado e em produção — https://vivlar.vercel.app
 - [x] Módulo 15 (Notificações: mural interno + sino + notificações pessoais, conectado em Financeiro/CRM/Comissões/Manutenção/Espelho de Vendas) implementado, auditado e em produção — https://vivlar.vercel.app
+- [x] Comparador de Unidades (dentro do Catálogo/Módulo 3: ranking por score
+  composto — progresso 40% + documentos 30% + financeiro 30%) implementado,
+  auditado (sem achado) e em produção — https://vivlar.vercel.app
 - [ ] Auditoria de arquitetura geral rodada

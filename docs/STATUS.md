@@ -39,6 +39,9 @@ região `sa-east-1`, ref `hppeqpmxupfghymkulne`)
 - ✅ Módulo 13 — Espelho de Vendas (site público por slug `/e/:slug`, captação de lead, reserva de unidade com trava atômica no banco — primeira superfície `anon`/pública do sistema)
 - ✅ Módulo 14 — Configurações (convite de equipe via lista de espera, vínculo cliente↔usuário, documentos obrigatórios por status, exclusão de conta)
 - ✅ Módulo 15 — Notificações (mural interno + sino + notificações pessoais, conectado em Financeiro/CRM/Comissões/Manutenção/Espelho de Vendas)
+- ✅ Comparador de Unidades (dentro do Catálogo/Módulo 3) — ranking de
+  unidades por score composto (progresso administrativo + documentos +
+  saúde financeira), só leitura, sem tabela/migration nova
 
 ## Como o projeto é construído (processo, pra sessões novas entenderem)
 

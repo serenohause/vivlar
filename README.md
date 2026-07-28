@@ -27,15 +27,16 @@ Outros scripts: `npm run build`, `npm run typecheck`, `npm run lint`, `npm run p
 
 Construído por módulos, cada um deployado separadamente. Status atual e
 lista completa: **`docs/STATUS.md`** (é o que fica atualizado — não
-duplicar a lista aqui). Módulo em produção mais recente: Módulo 15 —
-Notificações (mural interno + sino + notificações pessoais, conectado em
-Financeiro/CRM/Comissões/Manutenção/Espelho de Vendas; migrations
-`0064`-`0066` aplicadas ao banco remoto, deploy de 2026-07-28). A
-auditoria deste módulo (2026-07-27) não encontrou achado crítico/alto —
-teste de isolamento (`supabase/tests/0065_notifications_isolation.sql`)
-rodado de novo contra produção como smoke test pós-deploy, confirmando
-mural por audience x papel, notificação pessoal restrita ao próprio
-`user_id`, e isolamento entre tenants nos dois modos.
+duplicar a lista aqui). Entrega em produção mais recente: Comparador de
+Unidades (dentro do Catálogo/Módulo 3 — ranking de unidades por score
+composto: progresso administrativo 40% + documentos 30% + saúde
+financeira 30%; deploy de 2026-07-28). Só leitura, sem migration nova —
+`supabase db push` confirmou local (`0001`-`0066`) e remoto já
+sincronizados antes do deploy. Auditoria de segurança deste módulo sem
+achado crítico/alto/médio/baixo. Smoke test pós-deploy: `units` segue
+recusando leitura anônima em produção (`401 permission denied`,
+sem `GRANT` pra `anon`), confirmando que o isolamento por RLS/tenant
+segue ativo, não só localmente.
 
 Checklist seguido a cada deploy (ver `deploy-engineer`): auditoria de
 segurança sem achado crítico/alto em aberto, migrations aplicadas na
