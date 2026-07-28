@@ -698,6 +698,32 @@ do original)
   o banco remoto real. Recomenda-se uma passada manual antes de
   anunciar a feature pro time.
 
+**Dashboard Executivo — blocos operacionais/equipe** (fecha o débito
+documentado no topo do próprio `Dashboard.tsx` desde sua construção
+incremental; porta `Dashboard.jsx` + `CriticalAlerts`/`QuickActions`/
+`TeamPerformance`/`UnitFlowDashboard`/`InspectionsDashboard`/
+`MaintenanceDashboard` do original)
+- 6 blocos novos, todos leitura pura sobre tabelas já com RLS correta —
+  sem schema/RLS/RPC nova.
+- **Não portado, decisão já registrada antes** (não é desta entrega):
+  gráfico de receita mensal (`RevenueChart`, usa `Math.random()` no
+  original, sem dado real por trás).
+- **Quirk do original preservado deliberadamente, não corrigido**: em
+  `UnitFlowDashboard`, a etapa `entregue` tem "dias esperados" = 0
+  (fiel ao `STAGE_CONFIG` original), o que faz ela quase sempre disparar
+  como "gargalo" assim que existe qualquer unidade entregue com tempo
+  médio > 0. Comportamento idêntico ao original, não uma regressão
+  nossa — documentado inline no componente.
+- **Outro quirk preservado**: em `MaintenanceDashboard`, os breakdowns
+  por prioridade/categoria filtram só `status != 'resolvido'`,
+  incluindo chamados `cancelado` na contagem (fiel ao original, que
+  provavelmente já tinha esse pequeno bug) — só os alertas de SLA
+  excluem `cancelado` corretamente.
+- `deals.last_activity_date` existe no nosso schema (diferente do que
+  se temia antes de checar) — `CriticalAlerts` usa esse campo direto,
+  com fallback pra `created_at` só quando nunca houve atividade
+  registrada.
+
 **Sessões WhatsApp** (fora da numeração de módulos — porta
 `pages/WhatsAppSessions.jsx` do original)
 - **Feature já pela metade no original, replicada tão funcional quanto
