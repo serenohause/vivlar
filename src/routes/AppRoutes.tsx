@@ -34,7 +34,9 @@ import { TemplatesListPage } from '@/features/inspection-templates/pages/Templat
 import { CreateInspectionPage } from '@/features/inspections/pages/CreateInspectionPage';
 import { InspectionDetailPage } from '@/features/inspections/pages/InspectionDetailPage';
 import { InspectionsListPage } from '@/features/inspections/pages/InspectionsListPage';
+import { InvestmentContributionDetailPage } from '@/features/investors/pages/InvestmentContributionDetailPage';
 import { InvestmentContributionsListPage } from '@/features/investors/pages/InvestmentContributionsListPage';
+import { InvestmentReturnDetailPage } from '@/features/investors/pages/InvestmentReturnDetailPage';
 import { InvestmentReturnsListPage } from '@/features/investors/pages/InvestmentReturnsListPage';
 import { InvestorDashboardPage } from '@/features/investors/pages/InvestorDashboardPage';
 import { InvestorDetailPage } from '@/features/investors/pages/InvestorDetailPage';
@@ -140,11 +142,19 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 // criar investidor é um dialog dentro da própria lista, fiel ao original,
 // mesma escolha já feita para "CRM"/"Finance"/"Templates" acima),
 // "InvestmentContributions" (lista, "/investment-contributions") e
-// "InvestmentReturns" (lista, "/investment-returns") — ambas também só
-// dialog de criação, sem sub-rota de detalhe própria (o original não tinha
-// `InvestmentContributionDetail`/`InvestmentReturnDetail` como páginas de
-// fato conectadas, só links quebrados — a lista já cobre visualização/edição
-// via dialog inline, mesmo padrão de "Commissions"). Fechando o módulo 11
+// "InvestmentReturns" (lista, "/investment-returns") — ambas também têm
+// dialog de criação/edição inline na lista (mesmo padrão de "Commissions")
+// E sub-rota de detalhe própria (CORREÇÃO: um comentário antigo aqui dizia
+// que o original "não tinha `InvestmentContributionDetail`/
+// `InvestmentReturnDetail` como páginas de fato conectadas, só links
+// quebrados" — isso estava ERRADO, já verificado por leitura direta do
+// original: `pages.config.js` registra as duas normalmente,
+// `Breadcrumbs.jsx` tem entradas próprias, `notificationService.jsx` gera
+// deep-links reais, e as próprias listas linkam para elas via `<Link>` com
+// ícone `Eye`. Mesma convenção `/<slug>/:id` do resto do app —
+// "/investment-contributions/:id" e "/investment-returns/:id", ver
+// `InvestmentContributionDetailPage.tsx`/`InvestmentReturnDetailPage.tsx`).
+// Fechando o módulo 11
 // (Portal do Cliente): "ClientUnit" (Minha Unidade, sem sub-rota — igual ao
 // original, `ClientUnit.jsx` nunca teve `ClientUnitDetail`), "ClientFinance"
 // (Financeiro, sem sub-rota — mesmo critério) e "ClientMaintenance"
@@ -339,7 +349,9 @@ export function AppRoutes() {
           <Route path={pageUrl('Investors')} element={<InvestorsListPage />} />
           <Route path={`${pageUrl('Investors')}/:id`} element={<InvestorDetailPage />} />
           <Route path={pageUrl('InvestmentContributions')} element={<InvestmentContributionsListPage />} />
+          <Route path={`${pageUrl('InvestmentContributions')}/:id`} element={<InvestmentContributionDetailPage />} />
           <Route path={pageUrl('InvestmentReturns')} element={<InvestmentReturnsListPage />} />
+          <Route path={`${pageUrl('InvestmentReturns')}/:id`} element={<InvestmentReturnDetailPage />} />
 
           <Route path={pageUrl('ClientUnit')} element={<ClientUnitPage />} />
           <Route path={pageUrl('ClientFinance')} element={<ClientFinancePage />} />

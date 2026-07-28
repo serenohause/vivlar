@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Edit2, Link2, Mail, Phone, Trash2 } from 'lucide-react';
+import { ArrowRight, Edit2, Link2, Mail, Phone, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
 import { LoadingInline } from '@/components/ui/loading-inline';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { useAuth } from '@/features/auth/AuthContext';
 import { InvestorEditDialog } from '@/features/investors/components/InvestorEditDialog';
 import { LinkProjectDialog } from '@/features/investors/components/LinkProjectDialog';
@@ -118,32 +119,25 @@ export function InvestorDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col items-start justify-between gap-4 lg:flex-row">
-        <div className="flex items-center gap-3">
-          <Link to={pageUrl('Investors')}>
-            <Button variant="ghost" size="icon" className="rounded-full">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">{investor.nome}</h1>
-            {investor.documento && <p className="mt-1 text-muted-foreground">{investor.documento}</p>}
-          </div>
-        </div>
-
-        {isAdmin && (
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setIsEditOpen(true)}>
-              <Edit2 className="mr-2 h-4 w-4" />
-              Editar
-            </Button>
-            <Button variant="outline" onClick={() => setDeleteConfirm(true)} className="border-red-200 text-red-600 hover:bg-red-50">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Excluir
-            </Button>
-          </div>
-        )}
-      </div>
+      <PageHeader
+        title={investor.nome}
+        subtitle={investor.documento ?? undefined}
+        backTo="Investors"
+        actions={
+          isAdmin && (
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => setIsEditOpen(true)}>
+                <Edit2 className="mr-2 h-4 w-4" />
+                Editar
+              </Button>
+              <Button variant="outline" onClick={() => setDeleteConfirm(true)} className="border-red-200 text-red-600 hover:bg-red-50">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Excluir
+              </Button>
+            </div>
+          )
+        }
+      />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="border-0 shadow-sm lg:col-span-2">

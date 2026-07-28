@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { DollarSign, Edit2, Plus, Search, Trash2 } from 'lucide-react';
+import { DollarSign, Edit2, Eye, Plus, Search, Trash2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import {
@@ -29,6 +30,7 @@ import { formatCurrency, RETURN_STATUS_CONFIG, RETURN_TYPE_CONFIG } from '@/feat
 import { useInvestmentReturns, useInvestors, useSoftDeleteInvestmentReturn } from '@/features/investors/hooks';
 import type { InvestmentReturn, InvestmentReturnStatus, InvestmentReturnType } from '@/features/investors/types';
 import { useProjects } from '@/features/projects/hooks';
+import { pageUrl } from '@/lib/page-url';
 
 /**
  * Tradução de `original-project/src/pages/InvestmentReturns.jsx` — lista de
@@ -180,22 +182,29 @@ export function InvestmentReturnsListPage() {
                       <Badge className={`${RETURN_STATUS_CONFIG[ret.status].color} text-white`}>{RETURN_STATUS_CONFIG[ret.status].label}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      {isAdmin && (
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Editar" onClick={() => setEditingReturn(ret)}>
-                            <Edit2 className="h-4 w-4" />
+                      <div className="flex items-center justify-end gap-1">
+                        <Link to={`${pageUrl('InvestmentReturns')}/${ret.id}`}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver detalhes">
+                            <Eye className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
-                            title="Excluir"
-                            onClick={() => setDeleteConfirm(ret)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
+                        </Link>
+                        {isAdmin && (
+                          <>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Editar" onClick={() => setEditingReturn(ret)}>
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
+                              title="Excluir"
+                              onClick={() => setDeleteConfirm(ret)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

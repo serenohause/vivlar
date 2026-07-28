@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { DollarSign, Edit2, Plus, Search, Trash2 } from 'lucide-react';
+import { DollarSign, Edit2, Eye, Plus, Search, Trash2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import {
@@ -29,6 +30,7 @@ import { CONTRIBUTION_STATUS_CONFIG, CONTRIBUTION_TYPE_LABELS, formatCurrency } 
 import { useInvestmentContributions, useInvestors, useSoftDeleteInvestmentContribution } from '@/features/investors/hooks';
 import type { InvestmentContribution, InvestmentContributionStatus } from '@/features/investors/types';
 import { useProjects } from '@/features/projects/hooks';
+import { pageUrl } from '@/lib/page-url';
 
 /**
  * Tradução de `original-project/src/pages/InvestmentContributions.jsx` —
@@ -163,22 +165,29 @@ export function InvestmentContributionsListPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      {isAdmin && (
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Editar" onClick={() => setEditingContribution(contribution)}>
-                            <Edit2 className="h-4 w-4" />
+                      <div className="flex items-center justify-end gap-1">
+                        <Link to={`${pageUrl('InvestmentContributions')}/${contribution.id}`}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver detalhes">
+                            <Eye className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
-                            title="Excluir"
-                            onClick={() => setDeleteConfirm(contribution)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
+                        </Link>
+                        {isAdmin && (
+                          <>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Editar" onClick={() => setEditingContribution(contribution)}>
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700"
+                              title="Excluir"
+                              onClick={() => setDeleteConfirm(contribution)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

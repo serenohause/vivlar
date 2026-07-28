@@ -31,6 +31,14 @@ function returnsByInvestorQueryKey(investorId: string) {
   return ['investment-returns-by-investor', investorId] as const;
 }
 
+function contributionQueryKey(id: string) {
+  return ['investment-contribution', id] as const;
+}
+
+function returnQueryKey(id: string) {
+  return ['investment-return', id] as const;
+}
+
 // ---------------------------------------------------------------------
 // investors
 // ---------------------------------------------------------------------
@@ -292,6 +300,20 @@ export function useInvestmentContributionsByInvestor(investorId: string | undefi
   });
 }
 
+/** Um aporte específico — `InvestmentContributionDetailPage`. */
+export function useInvestmentContribution(id: string | undefined) {
+  return useQuery({
+    queryKey: contributionQueryKey(id ?? ''),
+    queryFn: async (): Promise<InvestmentContribution> => {
+      const { data, error } = await supabase.from('investment_contributions').select('*').eq('id', id as string).single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: Boolean(id),
+  });
+}
+
 /** Cria um aporte — tradução de `createMutation` (`InvestmentContributions.jsx`). Escrita restrita a `admin` pela RLS. */
 export function useCreateInvestmentContribution() {
   const queryClient = useQueryClient();
@@ -342,6 +364,7 @@ export function useUpdateInvestmentContribution(id: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CONTRIBUTIONS_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ['investment-contributions-by-investor'] });
+      queryClient.invalidateQueries({ queryKey: contributionQueryKey(id) });
     },
   });
 }
@@ -361,9 +384,10 @@ export function useSoftDeleteInvestmentContribution() {
       if (error) throw error;
       return id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
       queryClient.invalidateQueries({ queryKey: CONTRIBUTIONS_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ['investment-contributions-by-investor'] });
+      queryClient.invalidateQueries({ queryKey: contributionQueryKey(id) });
     },
   });
 }
@@ -401,6 +425,20 @@ export function useInvestmentReturnsByInvestor(investorId: string | undefined) {
       return data;
     },
     enabled: Boolean(investorId),
+  });
+}
+
+/** Um retorno específico — `InvestmentReturnDetailPage`. */
+export function useInvestmentReturn(id: string | undefined) {
+  return useQuery({
+    queryKey: returnQueryKey(id ?? ''),
+    queryFn: async (): Promise<InvestmentReturn> => {
+      const { data, error } = await supabase.from('investment_returns').select('*').eq('id', id as string).single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: Boolean(id),
   });
 }
 
@@ -454,6 +492,7 @@ export function useUpdateInvestmentReturn(id: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: RETURNS_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ['investment-returns-by-investor'] });
+      queryClient.invalidateQueries({ queryKey: returnQueryKey(id) });
     },
   });
 }
@@ -473,9 +512,10 @@ export function useSoftDeleteInvestmentReturn() {
       if (error) throw error;
       return id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
       queryClient.invalidateQueries({ queryKey: RETURNS_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ['investment-returns-by-investor'] });
+      queryClient.invalidateQueries({ queryKey: returnQueryKey(id) });
     },
   });
 }
