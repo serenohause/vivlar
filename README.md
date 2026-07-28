@@ -27,7 +27,36 @@ Outros scripts: `npm run build`, `npm run typecheck`, `npm run lint`, `npm run p
 
 Construído por módulos, cada um deployado separadamente. Status atual e
 lista completa: **`docs/STATUS.md`** (é o que fica atualizado — não
-duplicar a lista aqui). Entrega em produção mais recente: ajuste no
+duplicar a lista aqui). Entrega em produção mais recente: mapa
+interativo (Leaflet puro, sem `react-leaflet`) no Catálogo/Módulo 3 —
+Terrenos ganhou seletor de pino no detalhe (`TerrainPinSelector`) e
+visão geral com múltiplos pins na listagem (`TerrainSimpleMapView`),
+com toggle Lista/Mapa; portado fielmente de
+`TerrainSimpleMapView.jsx`/`TerrainPinSelector.jsx` do original, sem
+migration nova (colunas `latitude`/`longitude` já existiam antes).
+Editor de polígono (`TerrainPolygonEditor.jsx`) deliberadamente não
+portado — confirmado código morto no original, nunca conectado a
+nenhuma tela. Auditoria de segurança sem achado crítico/médio (um
+achado baixo corrigido no mesmo commit: `terrainLocationSchema` não
+estava sendo chamado antes do `mutate` ao salvar localização; achado
+alto pré-existente de `react-router-dom`, reincidente e não
+relacionado a esta mudança, continua acompanhado). **Ressalva
+importante**: esta feature não foi verificada visualmente num
+navegador antes do deploy (ambiente de desenvolvimento sem
+Playwright/chromium disponível e sem privilégio de root para
+instalar) — validada apenas por build/typecheck limpos e revisão de
+código linha a linha contra o original; lacuna documentada em
+`docs/ARCHITECTURE.md`. Smoke test pós-deploy: HTTP 200 na home,
+assets de produção conferidos byte-a-byte com o build local (mesmos
+hashes de `.js`/`.css`), CSS final contém `.leaflet-container` (Leaflet
+bundlado corretamente, sem depender de CDN externo — confirmado no
+`index.html` de produção), e leitura anônima de `terrains` segue
+recusada (`401 permission denied`, `42501`, sem `GRANT` pra `anon`),
+confirmando que o isolamento por RLS/tenant segue ativo em produção,
+não só localmente. RLS confirmada habilitada (`relrowsecurity = true`)
+em `terrains`/`projects`/`units` via consulta direta ao banco remoto.
+
+Entrega anterior: ajuste no
 Dashboard Executivo (dentro do Dashboard/Módulo 2) — Taxa de Conversão
 reposicionada da tela de Catálogo (posição errada) para a fileira
 principal de KPIs (`ExecutiveKpis`), e gráfico novo "Receita Mensal —

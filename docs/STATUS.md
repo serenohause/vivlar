@@ -33,7 +33,18 @@ região `sa-east-1`, ref `hppeqpmxupfghymkulne`)
   reposicionada na fileira de KPIs e gráfico "Receita Mensal —
   Realizado vs Previsto" com dado real de `payment_installments`
   (`recharts`), sem migration nova; deploy de 2026-07-28)
-- ✅ Módulo 3 — Catálogo (Terrenos, Projetos, Unidades)
+- ✅ Módulo 3 — Catálogo (Terrenos, Projetos, Unidades) — Terrenos
+  ganhou mapa interativo (Leaflet puro): seletor de pino no detalhe
+  (`TerrainPinSelector`) e visão geral com múltiplos pins na listagem
+  (`TerrainSimpleMapView`), toggle Lista/Mapa; portado do original
+  (`TerrainSimpleMapView.jsx`/`TerrainPinSelector.jsx`), sem
+  migration nova (colunas `latitude`/`longitude` já existiam); editor
+  de polígono deliberadamente não portado (código morto confirmado no
+  original); deploy de 2026-07-28. **Lacuna de QA registrada**: não
+  foi verificado visualmente num navegador (ambiente sem
+  Playwright/chromium e sem privilégio de root para instalar) — só
+  build/typecheck limpos e revisão de código linha a linha; ver
+  `docs/ARCHITECTURE.md`
 - ✅ Módulo 4 — CRM (Clientes, Corretores, Imobiliárias, Kanban de negócios)
 - ✅ Módulo 5 — Financeiro (Contas a Receber, Dashboard Financeiro, Inadimplência)
 - ✅ Módulo 6 — Comissões
