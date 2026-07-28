@@ -585,6 +585,41 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   recomendo uma passada manual pelo fluxo completo via navegador antes
   de anunciar a feature pro time.
 
+**Módulo 15 — Notificações**
+- **9 de 11 funções de `notificationService.jsx` são código morto no
+  próprio original**: só `notifyInstallmentPaid`/`notifyInstallmentCancelled`
+  são chamadas de verdade (via `FinanceDetail.jsx`); as outras 9
+  (`createFinanceNotification`, `createCommissionNotification`,
+  `createSaleNotification`, `createUnitUpdateNotification`,
+  `createInvestmentNotification`, `createOverdueNotification`,
+  `createDocumentNotification`, `createSystemNotification`, e mais)
+  nunca são importadas por nenhuma tela. Não portadas — replicar
+  código morto não é replicar o original de fato.
+- **2 pontos de notificação de "distrato automático" (`UnitDetail.jsx`)
+  não portados**: dependem de uma automação inteira — reverter status
+  da unidade e criar transição automaticamente ao aprovar um "Termo de
+  Distrato" — que nunca foi construída em nenhum módulo (Catálogo,
+  Documentos ou CRM). O tipo de documento `termo_distrato` existe no
+  schema, mas nenhuma tela reage a ele. Construir a automação de
+  distrato em si é trabalho de um módulo futuro, não deste; quando
+  existir, os 2 pontos de notificação ficam triviais de adicionar
+  (mesmo padrão já usado nos outros 10 pontos conectados).
+- **Investimentos/Notificação (`INVESTIMENTO`)**: `type` existe no
+  enum de referência (mural), mas nenhuma chamada real foi encontrada
+  no original conectando aportes/retornos a notificação — a função
+  `createInvestmentNotification` também está entre as 9 mortas. Sem
+  ponto real pra portar.
+- Preferências de notificação (`NotificationSettings.jsx`) não
+  portadas — confirmado que o original salva as preferências mas
+  nunca as consulta antes de criar uma notificação (puramente
+  decorativo). Fica de fora até que algum dia as preferências
+  realmente filtrem algo.
+- Papel `investidor` sem acesso ao mural interno (nem
+  `ADMIN_ONLY`/`INTERNAL_ONLY`/`ALL`) — critério mais restritivo,
+  decisão consciente já que o papel não existe no original e não há
+  comportamento de referência pra portar. Revisitar se o produto
+  quiser notificar investidores de algo no mural futuramente.
+
 ## Achados de segurança corrigidos (não aceitos como risco)
 
 - **Módulo 6 — Comissões** (auditoria de 2026-07-21): achado **alto**
@@ -887,4 +922,5 @@ auditoria do módulo 8, mas não específico dele)
 - [x] Módulo 12 (Portal do Investidor: dashboard pessoal, meus projetos com resultado operacional, meus aportes, meus retornos) implementado, auditado e em produção — https://vivlar.vercel.app
 - [x] Módulo 13 (Espelho de Vendas: site público por slug, captação de lead, reserva de unidade com trava atômica) implementado, auditado e em produção — https://vivlar.vercel.app
 - [x] Módulo 14 (Configurações: convite de equipe via lista de espera, vínculo cliente↔usuário, documentos obrigatórios por status, exclusão de conta) implementado, auditado e em produção — https://vivlar.vercel.app
+- [x] Módulo 15 (Notificações: mural interno + sino + notificações pessoais, conectado em Financeiro/CRM/Comissões/Manutenção/Espelho de Vendas) implementado, pendente de auditoria e deploy
 - [ ] Auditoria de arquitetura geral rodada
