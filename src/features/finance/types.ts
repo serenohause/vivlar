@@ -200,3 +200,78 @@ export interface CobrancaHistorico {
   created_at: string;
   updated_at: string;
 }
+
+/**
+ * Tradução 1:1 do `jsonb` retornado por `run_finance_checkup` (ver
+ * `supabase/migrations/0068_finance_checkup_rpc.sql`) — cada entrada de
+ * `details` tem uma forma diferente, por isso um tipo por categoria em vez
+ * de um único formato genérico. Usada só por `FinanceCheckupPage`.
+ */
+export interface FinanceCheckupDuplicateWalletItem {
+  unit_id: string;
+  duplicate_account_id: string;
+  primary_account_id: string;
+  installments_moved: number;
+}
+
+export interface FinanceCheckupDuplicateInstallmentItem {
+  unit_id: string;
+  duplicate_installment_id: string;
+  primary_installment_id: string;
+  tipo: InstallmentType;
+  vencimento: string;
+  valor_previsto: number;
+  descricao: string | null;
+}
+
+export interface FinanceCheckupMissingPaymentDateItem {
+  id: string;
+  unit_id: string;
+  vencimento: string;
+  status: InstallmentStatus;
+}
+
+export interface FinanceCheckupZeroValorPagoItem {
+  id: string;
+  unit_id: string;
+  vencimento: string;
+  valor_previsto: number;
+}
+
+export interface FinanceCheckupNonzeroValorPagoItem {
+  id: string;
+  unit_id: string;
+  vencimento: string;
+  status: InstallmentStatus;
+  valor_pago: number;
+}
+
+export interface FinanceCheckupOverdueNotMarkedItem {
+  id: string;
+  unit_id: string;
+  vencimento: string;
+  status: InstallmentStatus;
+}
+
+/** Relatório completo retornado por `run_finance_checkup` — mesma forma em dry run e execução real (só `dry_run`/`corrections_applied` mudam). */
+export interface FinanceCheckupReport {
+  dry_run: boolean;
+  corrections_applied: boolean;
+  executed_at: string;
+  summary: {
+    duplicate_wallets: number;
+    duplicate_installments: number;
+    missing_payment_date: number;
+    zero_valor_pago_on_paid: number;
+    nonzero_valor_pago_on_unpaid: number;
+    overdue_not_marked: number;
+  };
+  details: {
+    duplicate_wallets: FinanceCheckupDuplicateWalletItem[];
+    duplicate_installments: FinanceCheckupDuplicateInstallmentItem[];
+    missing_payment_date: FinanceCheckupMissingPaymentDateItem[];
+    zero_valor_pago_on_paid: FinanceCheckupZeroValorPagoItem[];
+    nonzero_valor_pago_on_unpaid: FinanceCheckupNonzeroValorPagoItem[];
+    overdue_not_marked: FinanceCheckupOverdueNotMarkedItem[];
+  };
+}

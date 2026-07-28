@@ -21,6 +21,7 @@ import { DealDetailPage } from '@/features/deals/pages/DealDetailPage';
 import { DocumentsListPage } from '@/features/documents/pages/DocumentsListPage';
 import { EspelhoVendasPage } from '@/features/espelho-vendas/pages/EspelhoVendasPage';
 import { FinanceAccountDetailPage } from '@/features/finance/pages/FinanceAccountDetailPage';
+import { FinanceCheckupPage } from '@/features/finance/pages/FinanceCheckupPage';
 import { FinanceDashboardPage } from '@/features/finance/pages/FinanceDashboardPage';
 import { FinanceListPage } from '@/features/finance/pages/FinanceListPage';
 import { InadimplenciaManagerPage } from '@/features/finance/pages/InadimplenciaManagerPage';
@@ -191,7 +192,17 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 // `admin`/`comercial`/`administrativo` (não aparece para `cliente`/
 // `investidor` — mesmo critério de acesso do original, aqui garantido pelo
 // redirect de `AppShell.tsx` em vez de um "Acesso Negado" dentro da própria
-// página, ver `NotificationsPage.tsx`).
+// página, ver `NotificationsPage.tsx`). E agora "FinanceCheckup" (Checkup
+// Financeiro: detecção e correção de inconsistências em
+// finance_accounts/payment_installments via RPC `run_finance_checkup`, ver
+// `supabase/migrations/0068_finance_checkup_rpc.sql`) — item de nav já
+// existia em SISTEMA (só para `admin`, ver `features/dashboard/navigation.ts`)
+// mas caía em "em construção" até agora. Sem sub-rota (mesma convenção de
+// "Settings"/"Notifications" acima). Diferente de "Notifications", esta tela
+// TEM um "Acesso Negado" dentro de si mesma (ver `FinanceCheckupPage.tsx`):
+// a RPC já é `admin`-only por dentro (`security definer` com checagem de
+// `tenant_role` no corpo), então o gate do frontend aqui é só UX (evitar o
+// usuário clicar e só descobrir pelo erro da RPC), não a autorização real.
 const PAGES_WITH_REAL_ROUTE = [
   'Terrains',
   'Projects',
@@ -222,6 +233,7 @@ const PAGES_WITH_REAL_ROUTE = [
   'InvestorReturns',
   'Settings',
   'Notifications',
+  'FinanceCheckup',
 ];
 const COMING_SOON_PAGE_NAMES = getAllNavPageNames().filter(
   (name) => name !== 'Dashboard' && !PAGES_WITH_REAL_ROUTE.includes(name)
@@ -316,6 +328,8 @@ export function AppRoutes() {
           <Route path={pageUrl('Settings')} element={<SettingsPage />} />
 
           <Route path={pageUrl('Notifications')} element={<NotificationsPage />} />
+
+          <Route path={pageUrl('FinanceCheckup')} element={<FinanceCheckupPage />} />
 
           {COMING_SOON_PAGE_NAMES.map((pageName) => (
             <Route key={pageName} path={pageUrl(pageName)} element={<ComingSoonPage pageName={pageName} />} />

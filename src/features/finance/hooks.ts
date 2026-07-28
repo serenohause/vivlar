@@ -8,7 +8,14 @@ import type {
   RegisterCobrancaMutationPayload,
   RegisterPaymentMutationPayload,
 } from '@/features/finance/schemas';
-import type { CobrancaHistorico, FinanceAccount, FinanceEvent, FinancingProcess, PaymentInstallment } from '@/features/finance/types';
+import type {
+  CobrancaHistorico,
+  FinanceAccount,
+  FinanceCheckupReport,
+  FinanceEvent,
+  FinancingProcess,
+  PaymentInstallment,
+} from '@/features/finance/types';
 import { computeInstallmentDisplayStatus } from '@/features/finance/utils';
 import { supabase } from '@/lib/supabase';
 
@@ -550,6 +557,41 @@ export function useRegisterCobranca(installmentId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cobrancaHistoricoQueryKey(installmentId) });
+    },
+  });
+}
+
+/**
+ * Executa `run_finance_checkup` (ver `supabase/migrations/0068_finance_checkup_rpc.sql`)
+ * em modo simulação (`dryRun: true`, só detecta) ou aplicando correções
+ * (`dryRun: false`, detecta e corrige na mesma transação) — usada por
+ * `FinanceCheckupPage`. A autorização real (`tenant_role = 'admin'`) é
+ * verificada DENTRO da função (`security definer`); qualquer outro papel
+ * recebe erro `42501` desta chamada, mesmo que a UI já esconda a tela para
+ * quem não é admin (defesa em profundidade, não confia só no gate do
+ * frontend).
+ *
+ * Quando `dryRun: false` e a função de fato corrige algo, as tabelas
+ * `finance_accounts`/`payment_installments` mudaram por baixo do React
+ * Query (não foi nenhuma das mutations deste arquivo) — invalida as duas
+ * listas para qualquer tela que dependa delas (`FinanceListPage`,
+ * `InadimplenciaManagerPage`, etc.) refletir o saneamento no próximo fetch.
+ */
+export function useRunFinanceCheckup() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (dryRun: boolean): Promise<FinanceCheckupReport> => {
+      const { data, error } = await supabase.rpc('run_finance_checkup', { p_dry_run: dryRun });
+
+      if (error) throw error;
+      return data as FinanceCheckupReport;
+    },
+    onSuccess: (report) => {
+      if (report.corrections_applied) {
+        queryClient.invalidateQueries({ queryKey: FINANCE_ACCOUNTS_QUERY_KEY });
+        queryClient.invalidateQueries({ queryKey: ALL_PAYMENT_INSTALLMENTS_QUERY_KEY });
+      }
     },
   });
 }
