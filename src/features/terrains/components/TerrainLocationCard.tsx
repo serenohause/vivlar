@@ -1,15 +1,13 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { Edit2, MapPin, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FormError } from '@/components/ui/form-error';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { TerrainPinSelector } from '@/features/terrains/components/TerrainPinSelector';
 import { useUpdateTerrainLocation } from '@/features/terrains/hooks';
-import { terrainLocationSchema } from '@/features/terrains/schemas';
+import type { TerrainLocationInput } from '@/features/terrains/schemas';
 import type { Terrain } from '@/features/terrains/types';
 
 interface TerrainLocationCardProps {
@@ -18,41 +16,25 @@ interface TerrainLocationCardProps {
 }
 
 /**
- * Seção "Localização" de `TerrainDetail.jsx`, sem o mapa interativo
- * (`TerrainPinSelector.jsx`, Leaflet — fora de escopo combinado com o
- * usuário). O original só deixava marcar/editar a localização através do
- * mapa; aqui os mesmos dados (`latitude`/`longitude`) viram um formulário
- * simples de dois campos numéricos, preservando o restante do fluxo
- * (alerta de "localização definida", timestamp de atualização, botão
- * definir/editar) fiel ao original.
+ * Seção "Localização" de `TerrainDetail.jsx`, com o mapa interativo
+ * (`TerrainPinSelector`, Leaflet) — débito técnico fechado. Modo edição:
+ * clique/arraste no mapa reposiciona o pino. Modo somente-leitura: mapa
+ * mostra só o pino salvo, sem interação de escrita. Preserva o restante do
+ * fluxo do original (alerta de "localização definida", timestamp de
+ * atualização, botão definir/editar, gate `!isTransformed`).
  */
 export function TerrainLocationCard({ terrain, isTransformed }: TerrainLocationCardProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [latitude, setLatitude] = useState(terrain.latitude != null ? String(terrain.latitude) : '');
-  const [longitude, setLongitude] = useState(terrain.longitude != null ? String(terrain.longitude) : '');
-  const [error, setError] = useState<string | null>(null);
 
   const updateLocation = useUpdateTerrainLocation(terrain.id);
   const hasLocation = terrain.latitude != null && terrain.longitude != null;
 
   function handleToggleEdit() {
-    setError(null);
-    setLatitude(terrain.latitude != null ? String(terrain.latitude) : '');
-    setLongitude(terrain.longitude != null ? String(terrain.longitude) : '');
     setIsEditing((current) => !current);
   }
 
-  function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    setError(null);
-
-    const parsed = terrainLocationSchema.safeParse({ latitude, longitude });
-    if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? 'Verifique as coordenadas informadas.');
-      return;
-    }
-
-    updateLocation.mutate(parsed.data, {
+  function handleLocationSave(location: TerrainLocationInput) {
+    updateLocation.mutate(location, {
       onSuccess: () => {
         toast.success('Localização atualizada com sucesso!');
         setIsEditing(false);
@@ -91,39 +73,12 @@ export function TerrainLocationCard({ terrain, isTransformed }: TerrainLocationC
       </CardHeader>
       <CardContent>
         {isEditing ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Latitude</Label>
-                <Input
-                  type="number"
-                  step="any"
-                  value={latitude}
-                  onChange={(e) => setLatitude(e.target.value)}
-                  placeholder="-23.550520"
-                />
-              </div>
-              <div>
-                <Label>Longitude</Label>
-                <Input
-                  type="number"
-                  step="any"
-                  value={longitude}
-                  onChange={(e) => setLongitude(e.target.value)}
-                  placeholder="-46.633308"
-                />
-              </div>
-            </div>
-            <FormError message={error} />
-            <div className="flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" variant="brand" disabled={updateLocation.isPending}>
-                {updateLocation.isPending ? 'Salvando...' : 'Salvar Localização'}
-              </Button>
-            </div>
-          </form>
+          <TerrainPinSelector
+            existingLat={terrain.latitude}
+            existingLng={terrain.longitude}
+            onSave={handleLocationSave}
+            onCancel={() => setIsEditing(false)}
+          />
         ) : hasLocation ? (
           <div className="space-y-3">
             <Alert className="border-green-200 bg-green-50">
@@ -144,12 +99,18 @@ export function TerrainLocationCard({ terrain, isTransformed }: TerrainLocationC
                 )}
               </p>
             )}
+            <TerrainPinSelector
+              existingLat={terrain.latitude}
+              existingLng={terrain.longitude}
+              onSave={() => {}}
+              readOnly
+            />
           </div>
         ) : (
           <Alert>
             <MapPin className="h-4 w-4" />
             <AlertDescription>
-              Nenhuma localização definida. Clique em &quot;Definir Localização&quot; para informar as coordenadas do terreno.
+              Nenhuma localização definida. Clique em &quot;Definir Localização&quot; para marcar o terreno no mapa.
             </AlertDescription>
           </Alert>
         )}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { DollarSign, Edit2, Eye, MapPin, Plus, Trash2 } from 'lucide-react';
+import { DollarSign, Edit2, Eye, Map as MapIcon, MapPin, List, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -23,9 +23,11 @@ import { Input } from '@/components/ui/input';
 import { LoadingInline } from '@/components/ui/loading-inline';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { TerrainEditDialog } from '@/features/terrains/components/TerrainEditDialog';
 import { TerrainForm } from '@/features/terrains/components/TerrainForm';
+import { TerrainSimpleMapView } from '@/features/terrains/components/TerrainSimpleMapView';
 import { TerrainStatusBadge } from '@/features/terrains/components/TerrainStatusBadge';
 import { formatCurrency, TERRAIN_STATUS_OPTIONS } from '@/features/terrains/constants';
 import { useCreateTerrain, useSoftDeleteTerrain, useTerrains } from '@/features/terrains/hooks';
@@ -34,11 +36,11 @@ import type { Terrain, TerrainStatus } from '@/features/terrains/types';
 import { pageUrl } from '@/lib/page-url';
 
 type LocationFilter = 'all' | 'with' | 'without';
+type ViewMode = 'list' | 'map';
 
 /**
- * Tradução de `original-project/src/pages/Terrains.jsx`, sem o toggle
- * Lista/Mapa (`TerrainSimpleMapView`, Leaflet — fora de escopo combinado
- * com o usuário): a lista é a única visão.
+ * Tradução de `original-project/src/pages/Terrains.jsx`, incluindo o toggle
+ * Lista/Mapa (`TerrainSimpleMapView`, Leaflet) — débito técnico fechado.
  */
 export function TerrainsListPage() {
   const { data: terrains, isLoading, isError, refetch } = useTerrains();
@@ -46,6 +48,7 @@ export function TerrainsListPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<TerrainStatus | 'all'>('all');
   const [locationFilter, setLocationFilter] = useState<LocationFilter>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingTerrain, setEditingTerrain] = useState<Terrain | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Terrain | null>(null);
@@ -172,128 +175,163 @@ export function TerrainsListPage() {
         </Card>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-4">
-        <Input
-          placeholder="Buscar por código, nome ou cidade..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full md:w-80"
-        />
-        <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as TerrainStatus | 'all')}>
-          <SelectTrigger className="w-full md:w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os Status</SelectItem>
-            {TERRAIN_STATUS_OPTIONS.map(([value, config]) => (
-              <SelectItem key={value} value={value}>
-                {config.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={locationFilter} onValueChange={(value) => setLocationFilter(value as LocationFilter)}>
-          <SelectTrigger className="w-full md:w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="with">Com Localização</SelectItem>
-            <SelectItem value="without">Sem Localização</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {/* View Mode Toggle */}
+      <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as ViewMode)} className="w-full">
+        <div className="mb-4 flex items-center justify-between">
+          <TabsList>
+            <TabsTrigger value="list" className="gap-2">
+              <List className="h-4 w-4" />
+              Lista
+            </TabsTrigger>
+            <TabsTrigger value="map" className="gap-2">
+              <MapIcon className="h-4 w-4" />
+              Mapa
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-      {/* Estados: carregando / erro / vazio / lista */}
-      {isLoading ? (
-        <LoadingInline />
-      ) : isError ? (
-        <ErrorState onRetry={() => refetch()} />
-      ) : filteredTerrains.length === 0 ? (
-        <EmptyState
-          icon={MapPin}
-          title="Nenhum terreno encontrado"
-          description="Crie um novo terreno para começar a gestão de pré-projetos"
-        />
-      ) : (
-        <Card className="overflow-hidden border-0 shadow-sm">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Código</TableHead>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Cidade/Estado</TableHead>
-                  <TableHead>Área (m²)</TableHead>
-                  <TableHead>Localização</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTerrains.map((terrain) => (
-                  <TableRow key={terrain.id}>
-                    <TableCell className="font-medium">{terrain.code}</TableCell>
-                    <TableCell>{terrain.name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="h-4 w-4" />
-                        {terrain.city}, {terrain.state}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">{terrain.area_m2?.toLocaleString('pt-BR')}</TableCell>
-                    <TableCell>
-                      {terrain.latitude != null && terrain.longitude != null ? (
-                        <Badge className="bg-green-100 text-green-800">
-                          <MapPin className="mr-1 h-3 w-3" />
-                          Definida
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-muted-foreground">
-                          Não definida
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <TerrainStatusBadge status={terrain.status} />
-                    </TableCell>
-                    <TableCell className="text-right text-sm">
-                      <div className="flex items-center justify-end gap-1">
-                        <DollarSign className="h-4 w-4" />
-                        {formatCurrency(terrain.valor_aquisicao)}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Link to={`${pageUrl('Terrains')}/${terrain.id}`}>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                        {terrain.status !== 'transformado_projeto' && (
-                          <Button variant="ghost" size="sm" onClick={() => setEditingTerrain(terrain)}>
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteConfirm(terrain)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
-      )}
+        {/* Filters */}
+        <div className="mb-6 flex flex-wrap gap-4">
+          <Input
+            placeholder="Buscar por código, nome ou cidade..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full md:w-80"
+          />
+          <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as TerrainStatus | 'all')}>
+            <SelectTrigger className="w-full md:w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Status</SelectItem>
+              {TERRAIN_STATUS_OPTIONS.map(([value, config]) => (
+                <SelectItem key={value} value={value}>
+                  {config.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={locationFilter} onValueChange={(value) => setLocationFilter(value as LocationFilter)}>
+            <SelectTrigger className="w-full md:w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="with">Com Localização</SelectItem>
+              <SelectItem value="without">Sem Localização</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* List View */}
+        <TabsContent value="list" className="mt-0">
+          {isLoading ? (
+            <LoadingInline />
+          ) : isError ? (
+            <ErrorState onRetry={() => refetch()} />
+          ) : filteredTerrains.length === 0 ? (
+            <EmptyState
+              icon={MapPin}
+              title="Nenhum terreno encontrado"
+              description="Crie um novo terreno para começar a gestão de pré-projetos"
+            />
+          ) : (
+            <Card className="overflow-hidden border-0 shadow-sm">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Código</TableHead>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Cidade/Estado</TableHead>
+                      <TableHead>Área (m²)</TableHead>
+                      <TableHead>Localização</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTerrains.map((terrain) => (
+                      <TableRow key={terrain.id}>
+                        <TableCell className="font-medium">{terrain.code}</TableCell>
+                        <TableCell>{terrain.name}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-4 w-4" />
+                            {terrain.city}, {terrain.state}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">{terrain.area_m2?.toLocaleString('pt-BR')}</TableCell>
+                        <TableCell>
+                          {terrain.latitude != null && terrain.longitude != null ? (
+                            <Badge className="bg-green-100 text-green-800">
+                              <MapPin className="mr-1 h-3 w-3" />
+                              Definida
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-muted-foreground">
+                              Não definida
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <TerrainStatusBadge status={terrain.status} />
+                        </TableCell>
+                        <TableCell className="text-right text-sm">
+                          <div className="flex items-center justify-end gap-1">
+                            <DollarSign className="h-4 w-4" />
+                            {formatCurrency(terrain.valor_aquisicao)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Link to={`${pageUrl('Terrains')}/${terrain.id}`}>
+                              <Button variant="ghost" size="sm">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                            {terrain.status !== 'transformado_projeto' && (
+                              <Button variant="ghost" size="sm" onClick={() => setEditingTerrain(terrain)}>
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteConfirm(terrain)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Map View */}
+        <TabsContent value="map" className="mt-0">
+          {isLoading ? (
+            <LoadingInline />
+          ) : isError ? (
+            <ErrorState onRetry={() => refetch()} />
+          ) : filteredTerrains.length === 0 ? (
+            <EmptyState
+              icon={MapPin}
+              title="Nenhum terreno encontrado"
+              description="Ajuste os filtros ou crie um novo terreno"
+            />
+          ) : (
+            <TerrainSimpleMapView terrains={filteredTerrains} />
+          )}
+        </TabsContent>
+      </Tabs>
 
       {editingTerrain && (
         <TerrainEditDialog
