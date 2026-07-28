@@ -1289,6 +1289,23 @@ auditoria do módulo 8, mas não específico dele)
 - Alto (dependência, reincidente, não desta mudança): mesmo advisory
   de `react-router-dom`. Continua acompanhado.
 
+**Investidores — páginas de detalhe de Aporte/Retorno** (auditoria de
+2026-07-28)
+- Nenhum achado crítico/alto. Confirmado: RLS (`0045_rls_investors.sql`)
+  bloqueia troca de `:id` na URL pra aporte/retorno de outro tenant ou
+  role sem SELECT (`.single()` cai em erro genérico, sem diferenciar
+  "não existe" de "não autorizado" — sem enumeração); link "Baixar"
+  comprovante com `target="_blank" rel="noopener noreferrer"`; botão
+  "Ver" só navega, sem novo dado exposto além do que a lista já
+  retorna.
+- Baixo, aceito (padrão pré-existente, não desta entrega):
+  `comprovante_url` é texto livre validado só por `/^https?:\/\//`,
+  não upload real de Storage — aceita qualquer URL externa. Mesmo
+  padrão já aceito em `payment_installments`/`commission_payments`.
+  Só `admin` escreve via RLS.
+- Alto (dependência, reincidente, não desta mudança): mesmo advisory
+  de `react-router-dom`. Continua acompanhado.
+
 ## Desvios do padrão do CLAUDE.md
 
 - Etapa 2 (`ui-prototyper` + `prototypes/`) substituída por
