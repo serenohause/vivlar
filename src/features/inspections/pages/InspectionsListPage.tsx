@@ -195,39 +195,39 @@ export function InspectionsListPage() {
         <Card className="border-0 shadow-sm">
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Projeto</TableHead>
-                  <TableHead>Unidade</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Vistoriador</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">% Conformidade</TableHead>
-                  <TableHead className="text-center">NC + Pendentes</TableHead>
-                  <TableHead>Ações</TableHead>
+                  <TableHead className="px-4 py-3">Data</TableHead>
+                  <TableHead className="px-4 py-3">Projeto</TableHead>
+                  <TableHead className="px-4 py-3">Unidade</TableHead>
+                  <TableHead className="px-4 py-3">Cliente</TableHead>
+                  <TableHead className="px-4 py-3">Vistoriador</TableHead>
+                  <TableHead className="px-4 py-3">Status</TableHead>
+                  <TableHead className="px-4 py-3 text-right">% Conformidade</TableHead>
+                  <TableHead className="px-4 py-3 text-center">NC + Pendentes</TableHead>
+                  <TableHead className="px-4 py-3">Ações</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody className="[&_tr]:border-b [&_tr]:border-border/60">
                 {filteredInspections.map((inspection) => (
                   <TableRow key={inspection.id}>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="px-4 py-3 text-sm text-muted-foreground">
                       {inspection.inspection_date ? new Date(inspection.inspection_date).toLocaleDateString('pt-BR') : '—'}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{projectName(inspection.project_id)}</TableCell>
-                    <TableCell className="font-medium text-foreground">{unitName(inspection.unit_id)}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{clientName(inspection.client_id)}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{inspectorName(inspection.inspector_user_id)}</TableCell>
-                    <TableCell>
+                    <TableCell className="px-4 py-3 text-sm text-muted-foreground">{projectName(inspection.project_id)}</TableCell>
+                    <TableCell className="px-4 py-3 font-medium text-foreground">{unitName(inspection.unit_id)}</TableCell>
+                    <TableCell className="px-4 py-3 text-sm text-muted-foreground">{clientName(inspection.client_id)}</TableCell>
+                    <TableCell className="px-4 py-3 text-sm text-muted-foreground">{inspectorName(inspection.inspector_user_id)}</TableCell>
+                    <TableCell className="px-4 py-3">
                       <InspectionStatusBadge status={inspection.status} />
                     </TableCell>
-                    <TableCell className="text-right font-semibold">{inspection.score_conformity_percent.toFixed(1)}%</TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="px-4 py-3 text-right font-semibold">{inspection.score_conformity_percent.toFixed(1)}%</TableCell>
+                    <TableCell className="px-4 py-3 text-center">
                       <Badge variant="outline" className="border-amber-600 text-amber-600">
                         {inspection.totals_nonconform + inspection.totals_pending}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         <Link to={`${pageUrl('Inspections')}/${inspection.id}`}>
                           <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver">
