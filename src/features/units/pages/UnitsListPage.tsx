@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Edit2, Eye, Home, Plus, Search, Trash2 } from 'lucide-react';
+import { BarChart3, Edit2, Eye, Home, Plus, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -35,13 +35,13 @@ import type { Unit, UnitAdminStatus, UnitStatus } from '@/features/units/types';
 import { pageUrl } from '@/lib/page-url';
 
 /**
- * Tradução de `original-project/src/pages/Units.jsx`, sem o botão
- * "Comparativo" (`UnitsComparison`, tela própria fora de escopo desta
- * leva) e sem as checagens de perfil (`canEdit`/`isAdmin` do original,
- * `app_profile` — este app ainda não tem esse conceito; RLS já restringe
- * quem chega em `admin`/`comercial`/`administrativo` do tenant, ver
- * 0010_rls_catalog.sql). Filtro por projeto aceita `?project=<id>` na URL
- * (usado pelo link "Ver Todas" de `ProjectDetailPage`).
+ * Tradução de `original-project/src/pages/Units.jsx`, com o botão
+ * "Comparativo" (`UnitsComparison`, ver `UnitsComparisonPage`) mas sem as
+ * checagens de perfil (`canEdit`/`isAdmin` do original, `app_profile` —
+ * este app ainda não tem esse conceito; RLS já restringe quem chega em
+ * `admin`/`comercial`/`administrativo` do tenant, ver 0010_rls_catalog.sql).
+ * Filtro por projeto aceita `?project=<id>` na URL (usado pelo link "Ver
+ * Todas" de `ProjectDetailPage`).
  */
 export function UnitsListPage() {
   const { data: units, isLoading, isError, refetch } = useUnits();
@@ -121,27 +121,35 @@ export function UnitsListPage() {
         title="Unidades (SKU)"
         subtitle="Gestão de estoque de unidades"
         actions={
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-            <DialogTrigger asChild>
-              <Button variant="brand">
-                <Plus className="mr-2 h-4 w-4" />
-                Nova Unidade
+          <div className="flex gap-2">
+            <Link to={pageUrl('UnitsComparison')}>
+              <Button variant="outline">
+                <BarChart3 className="mr-2 h-4 w-4" />
+                Comparar
               </Button>
-            </DialogTrigger>
-            <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Nova Unidade</DialogTitle>
-              </DialogHeader>
-              <UnitForm
-                projects={allProjects}
-                defaultProjectId={selectedProject !== 'all' ? selectedProject : undefined}
-                onSubmit={handleCreateSubmit}
-                isSubmitting={createUnit.isPending}
-                submitLabel="Criar"
-                onCancel={() => setShowCreateDialog(false)}
-              />
-            </DialogContent>
-          </Dialog>
+            </Link>
+            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+              <DialogTrigger asChild>
+                <Button variant="brand">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nova Unidade
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Nova Unidade</DialogTitle>
+                </DialogHeader>
+                <UnitForm
+                  projects={allProjects}
+                  defaultProjectId={selectedProject !== 'all' ? selectedProject : undefined}
+                  onSubmit={handleCreateSubmit}
+                  isSubmitting={createUnit.isPending}
+                  submitLabel="Criar"
+                  onCancel={() => setShowCreateDialog(false)}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
         }
       />
 

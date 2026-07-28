@@ -53,6 +53,7 @@ import { TerrainFormPage } from '@/features/terrains/pages/TerrainFormPage';
 import { TerrainsListPage } from '@/features/terrains/pages/TerrainsListPage';
 import { UnitDetailPage } from '@/features/units/pages/UnitDetailPage';
 import { UnitFormPage } from '@/features/units/pages/UnitFormPage';
+import { UnitsComparisonPage } from '@/features/units/pages/UnitsComparisonPage';
 import { UnitsListPage } from '@/features/units/pages/UnitsListPage';
 import { pageUrl } from '@/lib/page-url';
 import { AppShell } from '@/routes/AppShell';
@@ -258,6 +259,8 @@ export function AppRoutes() {
 
           <Route path={pageUrl('Units')} element={<UnitsListPage />} />
           <Route path={`${pageUrl('Units')}/novo`} element={<UnitFormPage />} />
+          {/* Alcançada só pelo botão "Comparar" de UnitsListPage — sem item de nav próprio, fiel ao original (ver comentário em UnitsComparisonPage.tsx). Path próprio (`/units-comparison`), não colide com `/units/:id`. */}
+          <Route path={pageUrl('UnitsComparison')} element={<UnitsComparisonPage />} />
           <Route path={`${pageUrl('Units')}/:id`} element={<UnitDetailPage />} />
 
           <Route path={pageUrl('Clients')} element={<ClientsListPage />} />

@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/AuthContext';
+import type { StatusTransition } from '@/features/deals/types';
 import type { UnitMutationPayload } from '@/features/units/schemas';
 import type { Unit, UnitAdminStatus, UnitStatus } from '@/features/units/types';
 import { supabase } from '@/lib/supabase';
 
 const UNITS_QUERY_KEY = ['units'] as const;
+const UNIT_STATUS_TRANSITIONS_QUERY_KEY = ['unit-status-transitions'] as const;
 // Chaves de outras features que ficam desatualizadas quando `units` muda —
 // invalidadas junto (match por prefixo, `exact: false` é o default do
 // React Query) para não deixar `ProjectsListPage`/`ProjectDetailPage`
@@ -68,6 +70,37 @@ export function useUnit(id: string | undefined) {
       return data;
     },
     enabled: Boolean(id),
+  });
+}
+
+/**
+ * Todas as transições de status ligadas a alguma unidade (`unit_id` não
+ * nulo) do tenant inteiro — comerciais e administrativas juntas, sem
+ * filtrar por `transition_type`. Usada só por `UnitsComparisonPage` para
+ * achar a primeira transição de cada unidade e calcular "tempo total no
+ * processo" (fiel a `StatusTransition.filter({})` sem filtro nenhum em
+ * `original-project/src/pages/UnitsComparison.jsx`; aqui já filtrado a
+ * `unit_id not null` no próprio `select`, porque linhas só-de-`deal_id`
+ * nunca entrariam no `unitTransitions.filter(t => t.unit_id === unit.id)`
+ * do original de qualquer forma — mesmo resultado, menos dado trafegado).
+ * Chave de query própria (não reaproveita `dealTransitionsQueryKey` de
+ * `features/deals/activities-hooks.ts`, que é por `deal_id` específico) —
+ * só leitura, `status_transitions` é log write-once (ver
+ * `useDealStatusTransitions`).
+ */
+export function useUnitStatusTransitions() {
+  return useQuery({
+    queryKey: UNIT_STATUS_TRANSITIONS_QUERY_KEY,
+    queryFn: async (): Promise<StatusTransition[]> => {
+      const { data, error } = await supabase
+        .from('status_transitions')
+        .select('*')
+        .not('unit_id', 'is', null)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      return data;
+    },
   });
 }
 
