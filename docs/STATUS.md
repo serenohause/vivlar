@@ -38,7 +38,7 @@ região `sa-east-1`, ref `hppeqpmxupfghymkulne`)
 - ✅ Módulo 12 — Portal do Investidor (dashboard pessoal, meus projetos com resultado operacional agregado, meus aportes, meus retornos)
 - ✅ Módulo 13 — Espelho de Vendas (site público por slug `/e/:slug`, captação de lead, reserva de unidade com trava atômica no banco — primeira superfície `anon`/pública do sistema)
 - ✅ Módulo 14 — Configurações (convite de equipe via lista de espera, vínculo cliente↔usuário, documentos obrigatórios por status, exclusão de conta)
-- 🔜 Módulo 15 — Notificações (mural interno + sino + notificações pessoais, conectado em Financeiro/CRM/Comissões/Manutenção/Espelho de Vendas) implementado, ainda **pendente de auditoria de segurança e deploy**
+- ✅ Módulo 15 — Notificações (mural interno + sino + notificações pessoais, conectado em Financeiro/CRM/Comissões/Manutenção/Espelho de Vendas)
 
 ## Como o projeto é construído (processo, pra sessões novas entenderem)
 

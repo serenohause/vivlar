@@ -935,5 +935,5 @@ auditoria do módulo 8, mas não específico dele)
 - [x] Módulo 12 (Portal do Investidor: dashboard pessoal, meus projetos com resultado operacional, meus aportes, meus retornos) implementado, auditado e em produção — https://vivlar.vercel.app
 - [x] Módulo 13 (Espelho de Vendas: site público por slug, captação de lead, reserva de unidade com trava atômica) implementado, auditado e em produção — https://vivlar.vercel.app
 - [x] Módulo 14 (Configurações: convite de equipe via lista de espera, vínculo cliente↔usuário, documentos obrigatórios por status, exclusão de conta) implementado, auditado e em produção — https://vivlar.vercel.app
-- [x] Módulo 15 (Notificações: mural interno + sino + notificações pessoais, conectado em Financeiro/CRM/Comissões/Manutenção/Espelho de Vendas) implementado, pendente de auditoria e deploy
+- [x] Módulo 15 (Notificações: mural interno + sino + notificações pessoais, conectado em Financeiro/CRM/Comissões/Manutenção/Espelho de Vendas) implementado, auditado e em produção — https://vivlar.vercel.app
 - [ ] Auditoria de arquitetura geral rodada

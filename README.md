@@ -27,17 +27,15 @@ Outros scripts: `npm run build`, `npm run typecheck`, `npm run lint`, `npm run p
 
 Construído por módulos, cada um deployado separadamente. Status atual e
 lista completa: **`docs/STATUS.md`** (é o que fica atualizado — não
-duplicar a lista aqui). Módulo em produção mais recente: Módulo 14 —
-Configurações (convite de equipe via lista de espera, vínculo
-cliente↔usuário, documentos obrigatórios por status, exclusão de conta;
-migrations `0060`-`0063` aplicadas ao banco remoto, deploy de
-2026-07-27). A auditoria deste módulo corrigiu um achado crítico
-(sequestro de convite via e-mail não verificado — confirmação de e-mail
-agora obrigatória, `mailer_autoconfirm = false`) e um achado alto
-(`site_url`/`uri_allow_list` do projeto Supabase de produção apontando
-para `http://127.0.0.1:3000` em vez de `https://vivlar.vercel.app` —
-corrigido via Management API antes do deploy, sem o que o link de
-confirmação de e-mail redirecionaria para localhost em produção).
+duplicar a lista aqui). Módulo em produção mais recente: Módulo 15 —
+Notificações (mural interno + sino + notificações pessoais, conectado em
+Financeiro/CRM/Comissões/Manutenção/Espelho de Vendas; migrations
+`0064`-`0066` aplicadas ao banco remoto, deploy de 2026-07-28). A
+auditoria deste módulo (2026-07-27) não encontrou achado crítico/alto —
+teste de isolamento (`supabase/tests/0065_notifications_isolation.sql`)
+rodado de novo contra produção como smoke test pós-deploy, confirmando
+mural por audience x papel, notificação pessoal restrita ao próprio
+`user_id`, e isolamento entre tenants nos dois modos.
 
 Checklist seguido a cada deploy (ver `deploy-engineer`): auditoria de
 segurança sem achado crítico/alto em aberto, migrations aplicadas na
