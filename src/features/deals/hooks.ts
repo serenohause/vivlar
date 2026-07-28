@@ -2,12 +2,89 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/AuthContext';
 import { dealActivitiesQueryKey, dealTransitionsQueryKey } from '@/features/deals/activities-hooks';
+import { DEAL_SALES_STAGE_LABELS } from '@/features/deals/constants';
 import type { DealMutationPayload } from '@/features/deals/schemas';
 import type { Deal, DealSalesStage } from '@/features/deals/types';
 import { invalidateUnitsQueries, updateUnitStatus } from '@/features/units/hooks';
 import { supabase } from '@/lib/supabase';
 
 const DEALS_QUERY_KEY = ['deals'] as const;
+
+/**
+ * Notificação de mural (`type=CRM`/`VENDA`, `audience=INTERNAL_ONLY`) ao
+ * criar negócio ou mudar de estágio — tradução de dois pontos de
+ * `Notification.create()` em `original-project/src/pages/CRM.jsx`
+ * (`createMutation.onSuccess`, linhas ~279-304, e
+ * `updateStageMutation.onSuccess`, linhas ~440-469). "Melhor esforço": erro
+ * aqui nunca propaga para a mutation principal (mesmo `try/catch` isolado
+ * do original em toda chamada de `Notification.create`).
+ */
+async function notifyDealEvent(params: {
+  tenantId: string;
+  deal: Deal;
+  clientId: string | null;
+  projectId: string | null;
+  unitId?: string | null;
+  /** Presente = mudança de estágio (`updateStageMutation`); ausente = criação (`createMutation`). */
+  stageChange?: { fromStage: DealSalesStage };
+}): Promise<void> {
+  try {
+    const { tenantId, deal, clientId, projectId, unitId, stageChange } = params;
+
+    const [{ data: client }, { data: project }, { data: unit }] = await Promise.all([
+      clientId ? supabase.from('clients').select('name').eq('id', clientId).maybeSingle() : Promise.resolve({ data: null }),
+      projectId ? supabase.from('projects').select('name').eq('id', projectId).maybeSingle() : Promise.resolve({ data: null }),
+      unitId ? supabase.from('units').select('sku').eq('id', unitId).maybeSingle() : Promise.resolve({ data: null }),
+    ]);
+
+    const stageLabel = DEAL_SALES_STAGE_LABELS[deal.sales_stage];
+
+    if (!stageChange) {
+      await supabase.from('notifications').insert({
+        tenant_id: tenantId,
+        title: 'Nova Oportunidade Criada',
+        message: `Nova oportunidade para ${client?.name ?? 'cliente'} no estágio ${stageLabel}`,
+        type: 'CRM',
+        event_key: `deal_created_${deal.id}`,
+        severity: 'INFO',
+        audience: 'INTERNAL_ONLY',
+        link_route: `/crm/${deal.id}`,
+        entity_type: 'Deal',
+        entity_id: deal.id,
+        meta: { project_name: project?.name ?? null, client_name: client?.name ?? null, stage: deal.sales_stage },
+      });
+      return;
+    }
+
+    const toStage = deal.sales_stage;
+    const title =
+      toStage === 'vendido' ? 'Oportunidade Vendida!' : toStage === 'distratado' ? 'Oportunidade Distratada' : `Oportunidade Movida para ${stageLabel}`;
+    const severity = toStage === 'vendido' ? 'CRITICO' : toStage === 'perdido' || toStage === 'distratado' ? 'ALERTA' : 'INFO';
+
+    await supabase.from('notifications').insert({
+      tenant_id: tenantId,
+      title,
+      message: `${client?.name ?? 'Cliente'} agora está em ${stageLabel}`,
+      type: toStage === 'vendido' ? 'VENDA' : 'CRM',
+      event_key: `deal_stage_change_${deal.id}_${toStage}_${Date.now()}`,
+      severity,
+      audience: 'INTERNAL_ONLY',
+      link_route: `/crm/${deal.id}`,
+      entity_type: 'Deal',
+      entity_id: deal.id,
+      meta: {
+        project_name: project?.name ?? null,
+        unit_sku: unit?.sku ?? null,
+        client_name: client?.name ?? null,
+        old_stage: stageChange.fromStage,
+        new_stage: toStage,
+      },
+    });
+  } catch {
+    // Notificação é efeito colateral opcional — nunca bloqueia/reverte a
+    // mutation principal (mesmo critério do original).
+  }
+}
 
 function dealQueryKey(id: string) {
   return ['deal', id] as const;
@@ -68,7 +145,9 @@ function mapDealError(error: { code?: string; message: string }): Error {
  * `original-project/src/pages/CRM.jsx`, sem o cálculo automático de
  * comissão/criação de `Commission`/convite de usuário cliente que o
  * original fazia dentro desta mesma mutation quando `sales_stage ===
- * "VENDIDO"` (fora de escopo desta leva — ver relatório final).
+ * "VENDIDO"` (fora de escopo desta leva — ver relatório final). A
+ * notificação de mural ("Nova Oportunidade Criada", `createMutation.onSuccess`
+ * do original) foi conectada (ver `notifyDealEvent` acima).
  */
 export function useCreateDeal() {
   const queryClient = useQueryClient();
@@ -95,6 +174,7 @@ export function useCreateDeal() {
     onSuccess: (deal) => {
       queryClient.invalidateQueries({ queryKey: DEALS_QUERY_KEY });
       if (deal.unit_id) invalidateUnitsQueries(queryClient, deal.unit_id);
+      if (tenantId) void notifyDealEvent({ tenantId, deal, clientId: deal.client_id, projectId: deal.project_id });
     },
   });
 }
@@ -117,11 +197,13 @@ interface UpdateDealStageInput {
  *
  * Fiel a `original-project/src/pages/CRM.jsx` (`updateStageMutation`,
  * linhas ~310-423) e `DealDetail.jsx` (`handleStageChange`): reflete
- * `units.status`, grava `status_transitions` (`transition_type: 'comercial'`)
- * e, ao marcar como vendido, registra uma `activities` — substituindo a
- * `Notification`/criação de `Commission`/convite de usuário cliente que o
- * original fazia neste mesmo ponto (todas fora de escopo desta leva, ver
- * relatório final).
+ * `units.status`, grava `status_transitions` (`transition_type: 'comercial'`),
+ * registra uma `activities` ao marcar como vendido, e insere a notificação de
+ * mural de mudança de estágio (`notifyDealEvent`, título/tipo/severidade
+ * variam por estágio, fiel a `updateStageMutation.onSuccess` do original) —
+ * ainda sem a criação de `Commission`/convite de usuário cliente que o
+ * original fazia neste mesmo ponto (fora de escopo desta leva, ver relatório
+ * final).
  *
  * Chama a RPC `update_deal_stage` (ver `supabase/migrations/0018_*.sql`)
  * em vez de 4 chamadas sequenciais ao client — achado de uma auditoria de
@@ -132,6 +214,7 @@ interface UpdateDealStageInput {
  */
 export function useUpdateDealStage() {
   const queryClient = useQueryClient();
+  const { tenantId } = useAuth();
 
   return useMutation({
     mutationFn: async ({ deal, toStage, note }: UpdateDealStageInput): Promise<Deal> => {
@@ -144,7 +227,7 @@ export function useUpdateDealStage() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (updatedDeal) => {
+    onSuccess: (updatedDeal, { deal: dealBeforeUpdate }) => {
       queryClient.invalidateQueries({ queryKey: DEALS_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: dealQueryKey(updatedDeal.id) });
       queryClient.invalidateQueries({ queryKey: dealTransitionsQueryKey(updatedDeal.id) });
@@ -152,6 +235,16 @@ export function useUpdateDealStage() {
         queryClient.invalidateQueries({ queryKey: dealActivitiesQueryKey(updatedDeal.id) });
       }
       if (updatedDeal.unit_id) invalidateUnitsQueries(queryClient, updatedDeal.unit_id);
+      if (tenantId) {
+        void notifyDealEvent({
+          tenantId,
+          deal: updatedDeal,
+          clientId: updatedDeal.client_id,
+          projectId: updatedDeal.project_id,
+          unitId: updatedDeal.unit_id,
+          stageChange: { fromStage: dealBeforeUpdate.sales_stage },
+        });
+      }
     },
   });
 }

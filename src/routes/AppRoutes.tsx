@@ -40,6 +40,7 @@ import { InvestorDetailPage } from '@/features/investors/pages/InvestorDetailPag
 import { InvestorsListPage } from '@/features/investors/pages/InvestorsListPage';
 import { MaintenanceDetailPage } from '@/features/maintenance/pages/MaintenanceDetailPage';
 import { MaintenanceListPage } from '@/features/maintenance/pages/MaintenanceListPage';
+import { NotificationsPage } from '@/features/notifications/pages/NotificationsPage';
 import { ProjectDetailPage } from '@/features/projects/pages/ProjectDetailPage';
 import { ProjectFormPage } from '@/features/projects/pages/ProjectFormPage';
 import { ProjectsListPage } from '@/features/projects/pages/ProjectsListPage';
@@ -176,10 +177,20 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 // `tenant_role = 'investidor'`, são as únicas liberadas (`INVESTOR_ALLOWED_PAGES`).
 // Fechando o módulo 14 (Configurações): "Settings" (sem sub-rota — 3 abas
 // dentro da mesma página, `Usuários`/`Documentos`/`Conta`, ver
-// `SettingsPage.tsx`; "Notificações"/"Teams" do original ficaram de fora
-// por decisão já tomada, não viram aba nem rota). Já tinha item de nav
-// (`features/dashboard/navigation.ts`, só para `admin`) mas caía em "em
-// construção" até agora.
+// `SettingsPage.tsx`; "Teams" do original ficou de fora por decisão já
+// tomada, não vira aba nem rota — "Notificações" (módulo 15, abaixo) É uma
+// rota própria, diferente do que essa nota antiga dizia). Já tinha item de
+// nav (`features/dashboard/navigation.ts`, só para `admin`) mas caía em "em
+// construção" até agora. E agora o módulo 15 (Notificações): "Notifications"
+// ("/notifications" — mural interno + sino, ver `NotificationsPage.tsx`/
+// `src/components/shared/NotificationBell.tsx`), sem sub-rota (mesma
+// convenção de "Settings"/"ClientUnit" acima, sem detalhe próprio — cada
+// notificação já linka direto para a tela do recurso relacionado via
+// `link_route`, não para um "NotificationDetail"). Item de nav só para
+// `admin`/`comercial`/`administrativo` (não aparece para `cliente`/
+// `investidor` — mesmo critério de acesso do original, aqui garantido pelo
+// redirect de `AppShell.tsx` em vez de um "Acesso Negado" dentro da própria
+// página, ver `NotificationsPage.tsx`).
 const PAGES_WITH_REAL_ROUTE = [
   'Terrains',
   'Projects',
@@ -209,6 +220,7 @@ const PAGES_WITH_REAL_ROUTE = [
   'InvestorContributions',
   'InvestorReturns',
   'Settings',
+  'Notifications',
 ];
 const COMING_SOON_PAGE_NAMES = getAllNavPageNames().filter(
   (name) => name !== 'Dashboard' && !PAGES_WITH_REAL_ROUTE.includes(name)
@@ -299,6 +311,8 @@ export function AppRoutes() {
           <Route path={pageUrl('InvestorReturns')} element={<InvestorReturnsPage />} />
 
           <Route path={pageUrl('Settings')} element={<SettingsPage />} />
+
+          <Route path={pageUrl('Notifications')} element={<NotificationsPage />} />
 
           {COMING_SOON_PAGE_NAMES.map((pageName) => (
             <Route key={pageName} path={pageUrl(pageName)} element={<ComingSoonPage pageName={pageName} />} />

@@ -44,6 +44,57 @@ function financingProcessesQueryKey(financeAccountId: string) {
 }
 
 /**
+ * Notificação de mural (`type=FINANCEIRO`, `audience=INTERNAL_ONLY`) ao
+ * registrar/cancelar um pagamento — tradução de `notifyInstallmentPaid`/
+ * `notifyInstallmentCancelled` (`original-project/src/components/notifications/notificationService.jsx`,
+ * linhas 274-326, chamadas de `FinanceDetail.jsx`). "Melhor esforço": erro
+ * aqui nunca propaga para a mutation principal (mesmo `try/catch` isolado
+ * do original em toda chamada de `Notification.create`) — busca o SKU da
+ * unidade à parte porque as mutations deste módulo não recebem a unidade
+ * carregada, só `unit_id` (desnormalizado na própria parcela).
+ */
+async function notifyInstallmentEvent(params: {
+  tenantId: string;
+  installment: PaymentInstallment;
+  financeAccountId: string;
+  userId: string | null;
+  kind: 'pago' | 'cancelado';
+}): Promise<void> {
+  try {
+    const { tenantId, installment, financeAccountId, userId, kind } = params;
+
+    const { data: unit } = await supabase.from('units').select('sku').eq('id', installment.unit_id).maybeSingle();
+    const unitSku = unit?.sku ?? 'N/A';
+
+    const isPago = kind === 'pago';
+    await supabase.from('notifications').insert({
+      tenant_id: tenantId,
+      title: isPago ? '✅ Pagamento Recebido' : '❌ Parcela Cancelada',
+      message: isPago
+        ? `Parcela ${installment.numero_parcela ?? ''} de ${unitSku} - ${formatCurrency(installment.valor_previsto)}`
+        : `Parcela ${installment.numero_parcela ?? ''} de ${unitSku} foi cancelada`,
+      type: 'FINANCEIRO',
+      event_key: `INSTALLMENT_${isPago ? 'PAID' : 'CANCELLED'}_${installment.id}_${Date.now()}`,
+      severity: isPago ? 'INFO' : 'ALERTA',
+      audience: 'INTERNAL_ONLY',
+      link_route: `/finance/${financeAccountId}`,
+      entity_type: 'PaymentInstallment',
+      entity_id: installment.id,
+      meta: {
+        installment_id: installment.id,
+        finance_account_id: financeAccountId,
+        unit_sku: unitSku,
+        amount: installment.valor_previsto,
+      },
+      created_by_user_id: userId,
+    });
+  } catch {
+    // Notificação é efeito colateral opcional — nunca bloqueia/reverte a
+    // mutation principal (mesmo critério do original).
+  }
+}
+
+/**
  * Invalida tudo que depende de uma carteira financeira específica depois de
  * uma mutation em `payment_installments`/`finance_events` — lista de
  * contas (totais mudam), a conta em si, as parcelas (chave exata e a
@@ -392,6 +443,8 @@ export function useRegisterPayment(financeAccountId: string) {
 
       if (eventError) throw eventError;
 
+      await notifyInstallmentEvent({ tenantId, installment, financeAccountId, userId: user?.id ?? null, kind: 'pago' });
+
       return installment;
     },
     onSuccess: () => invalidateFinanceAccountQueries(queryClient, financeAccountId),
@@ -433,6 +486,8 @@ export function useCancelInstallment(financeAccountId: string) {
       });
 
       if (eventError) throw eventError;
+
+      await notifyInstallmentEvent({ tenantId, installment, financeAccountId, userId: user?.id ?? null, kind: 'cancelado' });
 
       return installment;
     },

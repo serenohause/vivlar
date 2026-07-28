@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/AuthContext';
+import { COMMISSION_ADJUSTMENT_CONFIG, formatCurrency } from '@/features/commissions/constants';
 import type {
   CommissionAdjustmentMutationPayload,
   CommissionPaymentMutationPayload,
 } from '@/features/commissions/schemas';
 import type { Commission, CommissionAdjustment, CommissionPayment } from '@/features/commissions/types';
+import type { NotificationSeverity } from '@/features/notifications/types';
 import { supabase } from '@/lib/supabase';
 
 const COMMISSIONS_QUERY_KEY = ['commissions'] as const;
@@ -39,6 +41,101 @@ function invalidateCommissionQueries(queryClient: ReturnType<typeof useQueryClie
   queryClient.invalidateQueries({ queryKey: commissionQueryKey(commissionId) });
   queryClient.invalidateQueries({ queryKey: commissionAdjustmentsQueryKey(commissionId) });
   queryClient.invalidateQueries({ queryKey: ALL_COMMISSION_PAYMENTS_QUERY_KEY });
+}
+
+/**
+ * Contexto (nomes legíveis + totais atuais) para as notificações de mural de
+ * `commissions` — busca a comissão FRESCA (já com `saldo`/`total_pago`
+ * recalculados pela RPC que acabou de rodar) mais broker/unidade/projeto/
+ * cliente (via `deals.client_id`), tradução das 6 chamadas de
+ * `Notification.create()` de `original-project/src/pages/CommissionDetail.jsx`
+ * (linhas 232/320/363/429/488/529), que liam esses nomes de dados já
+ * carregados na tela — aqui, como a notificação nasce no hook (não no
+ * componente), busca-se de novo, só os campos necessários.
+ */
+async function fetchCommissionNotificationContext(commissionId: string): Promise<{
+  tenantId: string;
+  brokerName: string | null;
+  unitSku: string | null;
+  projectName: string | null;
+  clientName: string | null;
+  saldo: number;
+  totalComissao: number;
+  totalPago: number;
+} | null> {
+  const { data: commission } = await supabase
+    .from('commissions')
+    .select('tenant_id, broker_id, unit_id, project_id, deal_id, base_value, gross_value, saldo, total_pago')
+    .eq('id', commissionId)
+    .single();
+
+  if (!commission) return null;
+
+  const [{ data: broker }, { data: unit }, { data: project }, { data: deal }] = await Promise.all([
+    supabase.from('brokers').select('name').eq('id', commission.broker_id).maybeSingle(),
+    supabase.from('units').select('sku').eq('id', commission.unit_id).maybeSingle(),
+    supabase.from('projects').select('name').eq('id', commission.project_id).maybeSingle(),
+    supabase.from('deals').select('client_id').eq('id', commission.deal_id).maybeSingle(),
+  ]);
+
+  let clientName: string | null = null;
+  if (deal?.client_id) {
+    const { data: client } = await supabase.from('clients').select('name').eq('id', deal.client_id).maybeSingle();
+    clientName = client?.name ?? null;
+  }
+
+  return {
+    tenantId: commission.tenant_id,
+    brokerName: broker?.name ?? null,
+    unitSku: unit?.sku ?? null,
+    projectName: project?.name ?? null,
+    clientName,
+    saldo: commission.saldo,
+    totalComissao: commission.gross_value ?? commission.base_value,
+    totalPago: commission.total_pago,
+  };
+}
+
+/**
+ * Insere a notificação de mural (`type=COMISSAO`, `audience=INTERNAL_ONLY`)
+ * em si — "melhor esforço": busca o contexto e insere dentro do mesmo
+ * `try/catch`, erro aqui nunca propaga para a mutation principal (mesmo
+ * critério do `try/catch` isolado em toda chamada de `Notification.create`
+ * no original).
+ */
+async function notifyCommissionEvent(
+  commissionId: string,
+  build: (ctx: NonNullable<Awaited<ReturnType<typeof fetchCommissionNotificationContext>>>) => {
+    title: string;
+    message: string;
+    severity: NotificationSeverity;
+    eventKey: string;
+    meta: Record<string, unknown>;
+  }
+): Promise<void> {
+  try {
+    const ctx = await fetchCommissionNotificationContext(commissionId);
+    if (!ctx) return;
+
+    const { title, message, severity, eventKey, meta } = build(ctx);
+
+    await supabase.from('notifications').insert({
+      tenant_id: ctx.tenantId,
+      title,
+      message,
+      type: 'COMISSAO',
+      event_key: eventKey,
+      severity,
+      audience: 'INTERNAL_ONLY',
+      link_route: `/commissions/${commissionId}`,
+      entity_type: 'Commission',
+      entity_id: commissionId,
+      meta,
+    });
+  } catch {
+    // Notificação é efeito colateral opcional — nunca bloqueia/reverte a
+    // mutation principal (mesmo critério do original).
+  }
 }
 
 /** Lista de comissões do tenant (RLS restringe a admin/comercial/administrativo), excluindo soft-deleted. Usada por `CommissionsListPage`. */
@@ -150,7 +247,26 @@ export function useCreateAdjustment(commissionId: string) {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => invalidateCommissionQueries(queryClient, commissionId),
+    onSuccess: (_adjustment, input) => {
+      invalidateCommissionQueries(queryClient, commissionId);
+
+      const adjustmentLabel = COMMISSION_ADJUSTMENT_CONFIG[input.type].label;
+      void notifyCommissionEvent(commissionId, (ctx) => ({
+        title: `Ajuste em Comissão: ${adjustmentLabel}`,
+        message: `${adjustmentLabel} de ${formatCurrency(input.amount)} aplicado${input.attachment_url ? ' (com anexo)' : ''}. Motivo: ${input.reason.slice(0, 50)}...`,
+        severity: 'INFO',
+        eventKey: `commission_adjustment_${commissionId}_${Date.now()}`,
+        meta: {
+          project_name: ctx.projectName,
+          unit_sku: ctx.unitSku,
+          broker_name: ctx.brokerName,
+          client_name: ctx.clientName,
+          adjustment_type: input.type,
+          adjustment_value: input.amount,
+          has_attachment: Boolean(input.attachment_url),
+        },
+      }));
+    },
   });
 }
 
@@ -178,7 +294,26 @@ export function useCreatePayment(commissionId: string) {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => invalidateCommissionQueries(queryClient, commissionId),
+    onSuccess: (_payment, input) => {
+      invalidateCommissionQueries(queryClient, commissionId);
+
+      void notifyCommissionEvent(commissionId, (ctx) => ({
+        title: 'Pagamento de Comissão Registrado',
+        message: `Pagamento de ${formatCurrency(input.valor_pago)} registrado. Projeto: ${ctx.projectName}, Unidade: ${ctx.unitSku}, Corretor: ${ctx.brokerName}. Saldo restante: ${formatCurrency(ctx.saldo)}`,
+        // Fiel ao original (`newSaldo <= 0.01 ? "INFO" : "ALERTA"`): "INFO" quando a
+        // comissão já ficou quitada com este pagamento, "ALERTA" enquanto ainda resta saldo.
+        severity: ctx.saldo <= 0.01 ? 'INFO' : 'ALERTA',
+        eventKey: `commission_payment_${commissionId}_${Date.now()}`,
+        meta: {
+          project_name: ctx.projectName,
+          unit_sku: ctx.unitSku,
+          broker_name: ctx.brokerName,
+          client_name: ctx.clientName,
+          valor_pago: input.valor_pago,
+          saldo: ctx.saldo,
+        },
+      }));
+    },
   });
 }
 
@@ -189,9 +324,21 @@ export function useCreatePayment(commissionId: string) {
  */
 export function useUpdatePayment(commissionId: string) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ id, data: input }: { id: string; data: CommissionPaymentMutationPayload }): Promise<CommissionPayment> => {
+    mutationFn: async ({
+      id,
+      data: input,
+    }: {
+      id: string;
+      data: CommissionPaymentMutationPayload;
+    }): Promise<{ payment: CommissionPayment; oldValorPago: number }> => {
+      // Lido ANTES da RPC — precisamos do valor anterior só para o texto da
+      // notificação ("editado de X para Y"), a RPC já recalcula
+      // `total_pago`/`saldo` sozinha a partir da linha nova.
+      const { data: oldPayment } = await supabase.from('commission_payments').select('valor_pago').eq('id', id).maybeSingle();
+
       const { data, error } = await supabase.rpc('update_commission_payment', {
         p_payment_id: id,
         p_valor_pago: input.valor_pago,
@@ -203,9 +350,28 @@ export function useUpdatePayment(commissionId: string) {
       });
 
       if (error) throw error;
-      return data;
+      return { payment: data, oldValorPago: oldPayment?.valor_pago ?? input.valor_pago };
     },
-    onSuccess: () => invalidateCommissionQueries(queryClient, commissionId),
+    onSuccess: ({ payment, oldValorPago }) => {
+      invalidateCommissionQueries(queryClient, commissionId);
+
+      void notifyCommissionEvent(commissionId, (ctx) => ({
+        title: 'Pagamento de Comissão Editado',
+        message: `Pagamento editado de ${formatCurrency(oldValorPago)} para ${formatCurrency(payment.valor_pago)}. Projeto: ${ctx.projectName}, Unidade: ${ctx.unitSku}, Corretor: ${ctx.brokerName}. Novo saldo: ${formatCurrency(ctx.saldo)}`,
+        severity: 'INFO',
+        eventKey: `commission_payment_edit_${commissionId}_${Date.now()}`,
+        meta: {
+          project_name: ctx.projectName,
+          unit_sku: ctx.unitSku,
+          broker_name: ctx.brokerName,
+          client_name: ctx.clientName,
+          old_valor: oldValorPago,
+          new_valor: payment.valor_pago,
+          saldo: ctx.saldo,
+          edited_by: user?.email ?? null,
+        },
+      }));
+    },
   });
 }
 
@@ -217,13 +383,37 @@ export function useUpdatePayment(commissionId: string) {
  */
 export function useSoftDeletePayment(commissionId: string) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (paymentId: string): Promise<void> => {
+    mutationFn: async (paymentId: string): Promise<number> => {
+      // Lido ANTES da RPC — só para o texto da notificação ("valor excluído").
+      const { data: payment } = await supabase.from('commission_payments').select('valor_pago').eq('id', paymentId).maybeSingle();
+
       const { error } = await supabase.rpc('delete_commission_payment', { p_payment_id: paymentId });
       if (error) throw error;
+
+      return payment?.valor_pago ?? 0;
     },
-    onSuccess: () => invalidateCommissionQueries(queryClient, commissionId),
+    onSuccess: (deletedValorPago) => {
+      invalidateCommissionQueries(queryClient, commissionId);
+
+      void notifyCommissionEvent(commissionId, (ctx) => ({
+        title: 'Pagamento de Comissão Excluído',
+        message: `Pagamento de ${formatCurrency(deletedValorPago)} foi excluído. Projeto: ${ctx.projectName}, Unidade: ${ctx.unitSku}, Corretor: ${ctx.brokerName}. Novo saldo: ${formatCurrency(ctx.saldo)}`,
+        severity: 'ALERTA',
+        eventKey: `commission_payment_delete_${commissionId}_${Date.now()}`,
+        meta: {
+          project_name: ctx.projectName,
+          unit_sku: ctx.unitSku,
+          broker_name: ctx.brokerName,
+          client_name: ctx.clientName,
+          valor_excluido: deletedValorPago,
+          saldo: ctx.saldo,
+          deleted_by: user?.email ?? null,
+        },
+      }));
+    },
   });
 }
 
@@ -259,7 +449,17 @@ export function useCancelCommission(commissionId: string) {
 
       if (error) throw error;
     },
-    onSuccess: () => invalidateCommissionQueries(queryClient, commissionId),
+    onSuccess: (_data, notes) => {
+      invalidateCommissionQueries(queryClient, commissionId);
+
+      void notifyCommissionEvent(commissionId, (ctx) => ({
+        title: 'Comissão Cancelada',
+        message: `Comissão de ${ctx.brokerName ?? 'corretor'} foi cancelada. Motivo: ${notes.slice(0, 50)}...`,
+        severity: 'ALERTA',
+        eventKey: `commission_cancelled_${commissionId}_${Date.now()}`,
+        meta: { project_name: ctx.projectName, unit_sku: ctx.unitSku, broker_name: ctx.brokerName, client_name: ctx.clientName },
+      }));
+    },
   });
 }
 
@@ -291,6 +491,23 @@ export function useFinalizeCommission(commissionId: string) {
 
       if (error) throw error;
     },
-    onSuccess: () => invalidateCommissionQueries(queryClient, commissionId),
+    onSuccess: () => {
+      invalidateCommissionQueries(queryClient, commissionId);
+
+      void notifyCommissionEvent(commissionId, (ctx) => ({
+        title: 'Comissão Finalizada e Paga',
+        message: `Comissão no valor de ${formatCurrency(ctx.totalComissao)} foi finalizada. Total pago: ${formatCurrency(ctx.totalPago)}`,
+        severity: 'CRITICO',
+        eventKey: `commission_finalized_${commissionId}_${Date.now()}`,
+        meta: {
+          project_name: ctx.projectName,
+          unit_sku: ctx.unitSku,
+          broker_name: ctx.brokerName,
+          client_name: ctx.clientName,
+          total_comissao: ctx.totalComissao,
+          total_pago: ctx.totalPago,
+        },
+      }));
+    },
   });
 }

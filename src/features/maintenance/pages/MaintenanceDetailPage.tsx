@@ -145,6 +145,7 @@ export function MaintenanceDetailPage() {
         responsible_user_id: formData.responsible_user_id === NO_RESPONSIBLE ? null : formData.responsible_user_id,
         operator_notes: formData.operator_notes.trim() || null,
         currentStatus: request.status,
+        currentScheduledDate: request.scheduled_date,
       },
       {
         onSuccess: () => {

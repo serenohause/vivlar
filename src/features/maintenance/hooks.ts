@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/AuthContext';
+import { MAINTENANCE_STATUS_CONFIG } from '@/features/maintenance/constants';
 import type { MaintenancePriority, MaintenanceRequest, MaintenanceStatus } from '@/features/maintenance/types';
 import { supabase } from '@/lib/supabase';
 
@@ -114,10 +115,19 @@ type CreateMaintenanceRequestInput = {
  * (`0053_rls_client_portal_access.sql`) também exige `status = 'aberto'`
  * explicitamente, então não setar nada aqui é o único valor aceito de
  * qualquer forma.
+ *
+ * Ao criar, notifica o PRÓPRIO autor quando é o papel `cliente` — tradução
+ * do único `Notification.create()` de `original-project/src/pages/ClientMaintenance.jsx`
+ * (linha ~144, `type=MAINTENANCE_CREATED`, `user_id: currentUser.id`); o
+ * lado admin (`AdminMaintenance.jsx`) nunca notificou ninguém ao criar, por
+ * isso o `if (tenantRole === 'cliente')` abaixo. A RLS de INSERT em
+ * `notifications` para este caso (`notifications_insert_cliente_self`,
+ * `0065_rls_notifications.sql`) é um achado do `rls-guardian` desta mesma
+ * leva, feito sob medida para este ponto.
  */
 export function useCreateMaintenanceRequest() {
   const queryClient = useQueryClient();
-  const { tenantId, user } = useAuth();
+  const { tenantId, user, tenantRole } = useAuth();
 
   return useMutation({
     mutationFn: async (input: CreateMaintenanceRequestInput): Promise<MaintenanceRequest> => {
@@ -152,7 +162,28 @@ export function useCreateMaintenanceRequest() {
 
       return data;
     },
-    onSuccess: () => invalidateMaintenanceLists(queryClient),
+    onSuccess: (request) => {
+      invalidateMaintenanceLists(queryClient);
+
+      if (tenantRole === 'cliente' && user?.id && tenantId) {
+        // Melhor esforço — erro aqui (ex: falha de rede) nunca deve
+        // reverter/bloquear a criação do chamado, que já aconteceu.
+        void (async () => {
+          try {
+            await supabase.from('notifications').insert({
+              tenant_id: tenantId,
+              user_id: user.id,
+              title: 'Solicitação Criada',
+              message: `Sua solicitação "${request.title}" foi criada com sucesso.`,
+              type: 'MAINTENANCE_CREATED',
+              related_id: request.id,
+            });
+          } catch {
+            // silencioso, por design (ver comentário acima).
+          }
+        })();
+      }
+    },
   });
 }
 
@@ -164,19 +195,22 @@ type UpdateMaintenanceRequestInput = {
   /**
    * Status atual do chamado (já carregado pela página) — usado
    * exclusivamente para decidir o carimbo automático de `resolved_at`
-   * abaixo.
+   * abaixo e se deve notificar o cliente por mudança de status.
    */
   currentStatus?: MaintenanceStatus;
+  /** `scheduled_date` atual do chamado (já carregado pela página) — usado só para decidir se deve notificar o cliente por agendamento (mesmo papel de `currentStatus` acima). */
+  currentScheduledDate?: string | null;
 };
 
 /**
  * Atualiza status/agendamento/responsável/observações de um chamado —
- * tradução de `updateMutation` (`MaintenanceDetail.jsx`), SEM a criação de
- * `Notification` (tabela não existe no projeto novo, mesmo critério já
- * usado nos módulos anteriores). Carimba `resolved_at = now()`
- * automaticamente quando `status` transiciona PARA `resolvido` (e só
- * então) — decidido aqui, no hook, nunca a partir de um valor enviado pelo
- * client, fiel ao comentário da migration ("nunca um input manual").
+ * tradução de `updateMutation` (`MaintenanceDetail.jsx`, linhas ~103-141,
+ * incluindo os 2 `Notification.create()` pessoais pro cliente —
+ * `type=MAINTENANCE_STATUS_CHANGED`/`MAINTENANCE_SCHEDULED`). Carimba
+ * `resolved_at = now()` automaticamente quando `status` transiciona PARA
+ * `resolvido` (e só então) — decidido aqui, no hook, nunca a partir de um
+ * valor enviado pelo client, fiel ao comentário da migration ("nunca um
+ * input manual").
  *
  * A regra "`scheduled_date` obrigatória quando `status` vira `agendado`" já
  * é checada em `MaintenanceDetailPage` antes de chamar esta mutation, mas é
@@ -190,7 +224,7 @@ export function useUpdateMaintenanceRequest(id: string) {
 
   return useMutation({
     mutationFn: async (input: UpdateMaintenanceRequestInput): Promise<MaintenanceRequest> => {
-      const { currentStatus, ...fields } = input;
+      const { currentStatus, currentScheduledDate, ...fields } = input;
 
       if (input.status === 'agendado' && !input.scheduled_date) {
         throw new Error('Para agendar, é obrigatório definir a data.');
@@ -204,6 +238,48 @@ export function useUpdateMaintenanceRequest(id: string) {
 
       const { data, error } = await supabase.from('maintenance_requests').update(payload).eq('id', id).select().single();
       if (error) throw error;
+
+      // Melhor esforço — tradução dos 2 `Notification.create()` de
+      // `updateMutation` (`MaintenanceDetail.jsx`): notificação PESSOAL pro
+      // `client.user_id`, só quando o cliente tem portal vinculado (fiel ao
+      // `if (client?.user_id)` do original — sem portal, pula em silêncio) e
+      // só quando o campo de fato mudou.
+      try {
+        const statusChanged = input.status !== undefined && input.status !== currentStatus;
+        const scheduledDateChanged = input.scheduled_date !== undefined && input.scheduled_date !== currentScheduledDate;
+
+        if (statusChanged || scheduledDateChanged) {
+          const { data: client } = await supabase.from('clients').select('user_id, tenant_id').eq('id', data.client_id).maybeSingle();
+
+          if (client?.user_id) {
+            if (statusChanged && input.status) {
+              await supabase.from('notifications').insert({
+                tenant_id: client.tenant_id,
+                user_id: client.user_id,
+                title: 'Status Atualizado',
+                message: `Sua solicitação "${data.title}" foi atualizada para: ${MAINTENANCE_STATUS_CONFIG[input.status].label}`,
+                type: 'MAINTENANCE_STATUS_CHANGED',
+                related_id: id,
+              });
+            }
+
+            if (scheduledDateChanged && input.scheduled_date) {
+              await supabase.from('notifications').insert({
+                tenant_id: client.tenant_id,
+                user_id: client.user_id,
+                title: 'Agendamento Definido',
+                message: `Sua solicitação "${data.title}" foi agendada para ${new Date(input.scheduled_date).toLocaleDateString('pt-BR')}`,
+                type: 'MAINTENANCE_SCHEDULED',
+                related_id: id,
+              });
+            }
+          }
+        }
+      } catch {
+        // Notificação é efeito colateral opcional — nunca bloqueia/reverte a
+        // mutation principal (mesmo critério do original).
+      }
+
       return data;
     },
     onSuccess: () => {
