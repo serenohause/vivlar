@@ -149,8 +149,13 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   tenants — riscos aceitos, ver seção "Riscos aceitos" abaixo.
 
 **Módulo 3 — Catálogo (Terrenos/Projetos/Unidades)**
-- Terrenos: sem mapa/editor de polígono (Leaflet); localização é só
-  lat/lng em inputs simples.
+- Terrenos: mapa interativo (Leaflet) implementado numa leva posterior
+  (pedido explícito do usuário) — ver "Mapa interativo de Terrenos"
+  logo abaixo, fora da numeração de módulos. Editor de polígono
+  continua fora (confirmado código morto no original,
+  `TerrainPolygonEditor.jsx`/`TerrainMapView.jsx`, nunca conectado a
+  nenhuma tela — não há razão de negócio pra portar algo que o próprio
+  original abandonou).
 - Terrenos: botão "Transformar em Projeto" fica desabilitado (depende de
   um fluxo de criação de projeto vinculado ao terreno).
 - Projetos: sem aba "Resultado Operacional" (viabilidade econômica),
@@ -789,6 +794,37 @@ anterior de blocos operacionais)
   não como se fosse erro/falha.
 - Não requer auditoria de segurança do fluxo de bot (não existe) — só
   a RLS/gate admin-only da tela em si.
+
+**Mapa interativo de Terrenos** (dentro do Catálogo/Módulo 3 — fecha o
+débito "sem mapa/editor de polígono (Leaflet)" registrado acima; porta
+`TerrainSimpleMapView.jsx` + `TerrainPinSelector.jsx` do original)
+- Leaflet puro (API imperativa, `L.map()`/`L.marker()`/`L.tileLayer()`),
+  mesma escolha do original — não `react-leaflet` declarativo. Tiles
+  públicos gratuitos (OpenStreetMap + Esri ArcGIS satélite), sem API
+  key, mesmo par do original.
+- 2 componentes: `TerrainPinSelector` (seletor de pino único, detalhe
+  do terreno, modos edição/somente-leitura, substituiu o formulário
+  numérico stopgap que existia antes) e `TerrainSimpleMapView` (visão
+  geral com um pin por terreno, `fitBounds`, popup com dados e link
+  pro detalhe) — toggle Lista/Mapa (`Tabs`) na listagem, mesmo padrão
+  do original.
+- **Não portado, deliberado**: editor de polígono
+  (`TerrainPolygonEditor.jsx`, `leaflet-draw`+`turf`) e a variante
+  "avançada" do mapa de lista com suporte a polígono
+  (`TerrainMapView.jsx`) — confirmados código morto no original
+  (nunca importados por nenhuma página, sem botão que os abra). Schema
+  não tem `polygon_geojson`/`centroid_lat`/`centroid_lng`/`area_source`
+  — só o par `latitude`/`longitude`, que é o único genuinamente usado.
+- Ícone do marker via asset local (import estático do pacote `leaflet`,
+  inlined como base64 no bundle) em vez da URL de CDN do original
+  (`cdnjs.cloudflare.com`) — mais robusto pro build Vite, não depende
+  de terceiro externo ficar no ar.
+- **Lacuna de QA**: não foi possível verificar visualmente (tiles
+  carregando, marker renderizando) nesta sessão — ambiente sem
+  navegador/Playwright disponível e sem privilégio pra instalar
+  (precisaria de root). Build e typecheck passam limpos, lógica
+  revisada linha a linha contra o original, mas recomenda-se uma
+  checagem manual num navegador real antes de considerar 100% fechado.
 
 **Comparador de Unidades (dentro do Catálogo/Módulo 3)**
 - Sem débito técnico novo: tela só de leitura, reaproveita hooks já
