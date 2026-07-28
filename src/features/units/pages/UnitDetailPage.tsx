@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Building2, ClipboardCheck, DollarSign, Download, Edit2, FileText, Home, Plus, Wrench } from 'lucide-react';
 
@@ -25,7 +25,7 @@ import { UnitAdminStatusPipeline } from '@/features/units/components/UnitAdminSt
 import { UnitEditDialog } from '@/features/units/components/UnitEditDialog';
 import { UnitStatusBadge } from '@/features/units/components/UnitStatusBadge';
 import { formatCurrency } from '@/features/units/constants';
-import { useUnit } from '@/features/units/hooks';
+import { useCheckAndResetUnitMcmvFlow, useUnit } from '@/features/units/hooks';
 import { pageUrl } from '@/lib/page-url';
 
 /**
@@ -71,6 +71,21 @@ export function UnitDetailPage() {
   const [showCreateFinanceDialog, setShowCreateFinanceDialog] = useState(false);
   const [showDocumentDialog, setShowDocumentDialog] = useState(false);
   const [showMaintenanceDialog, setShowMaintenanceDialog] = useState(false);
+
+  // Correção reativa e silenciosa do fluxo MCMV -- fiel ao `useEffect` de
+  // `original-project/src/pages/UnitDetail.jsx` (~152-172), que chama
+  // `shouldResetUnitMcmvFlow`/`resetUnitMcmvFlow` ao carregar a página. A
+  // RPC decide sozinha se há algo a reabrir (unidade em `admin_status =
+  // 'distrato'` com um negócio ativo de verdade) -- não depende de `unit`
+  // já carregado no client, só do `id` da rota, então roda uma vez por
+  // navegação para uma unidade, sem esperar `isLoading` resolver. Sem toast:
+  // é uma correção de bastidor, não uma ação do usuário (mesmo comportamento
+  // silencioso do original).
+  const checkAndResetMcmvFlow = useCheckAndResetUnitMcmvFlow();
+  useEffect(() => {
+    if (id) checkAndResetMcmvFlow.mutate(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   if (isLoading) {
     return <LoadingInline />;

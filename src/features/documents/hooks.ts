@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/AuthContext';
 import type { DocumentMetadataMutationPayload, DocumentUploadMutationPayload } from '@/features/documents/schemas';
 import type { Document, DocumentStatus } from '@/features/documents/types';
+import { invalidateUnitsQueries } from '@/features/units/hooks';
 import { supabase } from '@/lib/supabase';
 
 const DOCUMENTS_QUERY_KEY = ['documents'] as const;
@@ -229,6 +230,19 @@ export function useUpdateDocument(id: string) {
  * instância por documento (mesma ideia de `useUpdateDealStage`/
  * `useSoftDeleteDeal` em `features/deals/hooks.ts`, que recebem a entidade
  * inteira no `mutate` pelo mesmo motivo).
+ *
+ * GATILHO DE DISTRATO: se a atualização aprova (`status = 'aprovado'`) um
+ * documento `doc_type = 'termo_distrato'` vinculado a uma unidade, chama a
+ * RPC `apply_unit_distrato` (`p_source: 'auto_document_approval'`) logo em
+ * seguida — tradução do `if (data.status === "APROVADO" && updatedDoc.doc_type
+ * === "TERMO_DISTRATO")` dentro de `updateDocMutation`
+ * (`original-project/src/pages/UnitDetail.jsx`, ~204-265). Melhor esforço:
+ * erro nesta chamada NUNCA propaga para o `onError` desta mutation nem
+ * desfaz a aprovação do documento (já persistida) — só um `console.error`,
+ * mesmo padrão de "efeito colateral best-effort" já usado por
+ * `notifyDealEvent` (`features/deals/hooks.ts`, módulo 15). A RPC já cria
+ * sozinha a notificação e o `status_transitions` — nenhuma escrita adicional
+ * é feita aqui.
  */
 export function useUpdateDocumentStatus() {
   const queryClient = useQueryClient();
@@ -244,10 +258,34 @@ export function useUpdateDocumentStatus() {
         .single();
 
       if (error) throw error;
+
+      if (status === 'aprovado' && data.doc_type === 'termo_distrato' && data.unit_id) {
+        try {
+          const { error: distratoError } = await supabase.rpc('apply_unit_distrato', {
+            p_unit_id: data.unit_id,
+            p_reason: 'Termo de Distrato aprovado automaticamente',
+            p_source: 'auto_document_approval',
+          });
+          if (distratoError) throw distratoError;
+        } catch (distratoError) {
+          console.error('Falha ao aplicar distrato automaticamente após aprovação do Termo de Distrato:', distratoError);
+        }
+      }
+
       return data;
     },
-    onSuccess: (document) =>
-      invalidateDocumentsQueries(queryClient, { id: document.id, unitId: document.unit_id, dealId: document.deal_id }),
+    onSuccess: (document) => {
+      invalidateDocumentsQueries(queryClient, { id: document.id, unitId: document.unit_id, dealId: document.deal_id });
+      // A RPC acima pode ter mudado `units`/`deals` — invalidação também
+      // best-effort (não há como saber aqui, sem duplicar o `if` de cima,
+      // se a chamada de fato rodou/teve sucesso; invalidar sem necessidade
+      // é barato).
+      if (document.doc_type === 'termo_distrato' && document.status === 'aprovado' && document.unit_id) {
+        invalidateUnitsQueries(queryClient, document.unit_id);
+        queryClient.invalidateQueries({ queryKey: ['deals'] });
+        queryClient.invalidateQueries({ queryKey: ['unit-deals'] });
+      }
+    },
   });
 }
 

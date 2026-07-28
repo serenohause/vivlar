@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { UnitAdminStatusBadge } from '@/features/units/components/UnitAdminStatusBadge';
 import { ADMIN_STATUS_CONFIG } from '@/features/units/constants';
-import { useUpdateUnitAdminStatus } from '@/features/units/hooks';
+import { useApplyUnitDistrato, useUpdateUnitAdminStatus } from '@/features/units/hooks';
 import type { Unit, UnitAdminStatus } from '@/features/units/types';
 
 /** Sequência normal do pipeline — sem `distrato`, que não é um "próximo estágio" e sim uma saída lateral do fluxo, disponível a qualquer momento antes da entrega (mesma regra do original: botão "Realizar Distrato" habilitado enquanto `admin_status` não é `ENTREGUE`/`DISTRATO`). */
@@ -37,13 +37,30 @@ interface UnitAdminStatusPipelineProps {
  * botões comunica essa lacuna de forma discreta, sem alarmismo — não é um
  * erro, é uma limitação conhecida desta leva.
  *
- * "Distrato" também é simplificado: no original, aprovar o distrato
- * sincroniza `Deal`/`Contract`/notificações; aqui é só a mudança do próprio
- * `admin_status` para `distrato`, sem tocar em nenhuma tabela que ainda não
- * existe.
+ * "Marcar Distrato" NÃO é mais simplificado (débito quitado pela RPC
+ * `apply_unit_distrato`, ver `0070_unit_distrato_rpcs.sql`): exige um
+ * `termo_distrato` aprovado para esta unidade (a RPC lança exceção senão,
+ * exibida via toast — fiel ao `alert(...)` de `handleDistrato` no
+ * original), e faz atomicamente o que o original fazia em 4 escritas
+ * sequenciais — marca o negócio ativo como `distratado`/inativo, libera a
+ * unidade, grava `status_transitions` e cria a notificação (mural interno).
  */
 export function UnitAdminStatusPipeline({ unit }: UnitAdminStatusPipelineProps) {
   const updateAdminStatus = useUpdateUnitAdminStatus(unit.id);
+  const applyDistrato = useApplyUnitDistrato();
+
+  function handleDistrato() {
+    applyDistrato.mutate(
+      { unitId: unit.id, reason: 'Distrato manual via UnitDetail', source: 'manual' },
+      {
+        onSuccess: () => toast.success('Distrato registrado.'),
+        // Mensagem da RPC exibida direto (ex.: termo de distrato não
+        // aprovado) — fiel ao `alert(...)` do original, no padrão de toast
+        // já estabelecido no resto do app.
+        onError: (error) => toast.error(error.message),
+      }
+    );
+  }
 
   const currentIndex = unit.admin_status ? PIPELINE_ORDER.indexOf(unit.admin_status) : -1;
   const isInPipeline = currentIndex !== -1;
@@ -115,8 +132,8 @@ export function UnitAdminStatusPipeline({ unit }: UnitAdminStatusPipelineProps) 
                 variant="outline"
                 size="sm"
                 className="text-destructive hover:text-destructive"
-                disabled={updateAdminStatus.isPending}
-                onClick={() => handleUpdate('distrato', 'Distrato registrado.')}
+                disabled={applyDistrato.isPending}
+                onClick={handleDistrato}
               >
                 <XCircle className="mr-2 h-4 w-4" />
                 Marcar Distrato

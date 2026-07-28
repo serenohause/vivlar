@@ -219,6 +219,112 @@ export function useUpdateUnitAdminStatus(id: string) {
 }
 
 /**
+ * Resultado de `apply_unit_distrato` (ver `0070_unit_distrato_rpcs.sql`) —
+ * `deal_id`/`previous_admin_status` podem vir `null` (unidade sem negócio
+ * ativo / sem `admin_status` anterior).
+ */
+interface ApplyUnitDistratoResult {
+  unit_id: string;
+  deal_id: string | null;
+  previous_admin_status: UnitAdminStatus | null;
+  source: 'manual' | 'auto_document_approval';
+  applied_at: string;
+}
+
+interface ApplyUnitDistratoInput {
+  unitId: string;
+  reason?: string | null;
+  source?: 'manual' | 'auto_document_approval';
+}
+
+/**
+ * Aplica o distrato de uma unidade via RPC `apply_unit_distrato` — traduz
+ * numa única chamada atômica as 4 escritas sequenciais que o original fazia
+ * em `handleDistrato`/`updateDocMutation.onSuccess` (`UnitDetail.jsx`,
+ * ~200-270 e ~375-445): marca o negócio ativo (se houver) como
+ * `distratado`/inativo, libera a unidade (`status=disponivel`,
+ * `admin_status=distrato`, `active_deal_id=null`), grava
+ * `status_transitions` e cria a notificação — tudo já resolvido dentro da
+ * função (SECURITY DEFINER), nenhuma escrita adicional nem notificação
+ * client-side depois desta chamada. Lança exceção (capturada pelo
+ * `onError` de quem chama) se a unidade não tiver um `termo_distrato`
+ * aprovado — mesma mensagem da precondição do original
+ * (`"É necessário ter o Termo de Distrato aprovado..."`), exibida direto
+ * via toast por quem consome este hook, sem reescrever a mensagem aqui.
+ *
+ * `source` distingue só o texto da notificação criada pela função
+ * ('manual', default — botão "Distrato" de `UnitDetailPage`;
+ * 'auto_document_approval' — gatilho automático em
+ * `useUpdateDocumentStatus`, `features/documents/hooks.ts`), replicando os
+ * 2 pontos de chamada do original a partir de uma única RPC.
+ */
+export function useApplyUnitDistrato() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ unitId, reason, source = 'manual' }: ApplyUnitDistratoInput): Promise<ApplyUnitDistratoResult> => {
+      const { data, error } = await supabase.rpc('apply_unit_distrato', {
+        p_unit_id: unitId,
+        p_reason: reason ?? null,
+        p_source: source,
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (result) => {
+      invalidateUnitsQueries(queryClient, result.unit_id);
+      // `deals`/`documents` não têm chave exportada aqui (evita import
+      // circular — `features/deals/hooks.ts` já importa deste arquivo, ver
+      // `invalidateUnitsQueries`) — invalidação por string literal, mesmo
+      // padrão já usado por `useUpdateDealStage` para acionar `units`.
+      queryClient.invalidateQueries({ queryKey: ['deals'] });
+      queryClient.invalidateQueries({ queryKey: ['unit-deals'] });
+      if (result.deal_id) queryClient.invalidateQueries({ queryKey: ['deal', result.deal_id] });
+    },
+  });
+}
+
+/**
+ * Resultado de `check_and_reset_unit_mcmv_flow` — `reset: false` inclui um
+ * `reason` só informativo (não exibido na UI, ver comentário de
+ * `useCheckAndResetUnitMcmvFlow` abaixo); `reset: true` inclui o
+ * `deal_id` reaberto.
+ */
+interface CheckAndResetUnitMcmvFlowResult {
+  reset: boolean;
+  reason?: string;
+  deal_id?: string;
+}
+
+/**
+ * Checagem reativa (NÃO é uma ação do usuário) do fluxo MCMV — tradução de
+ * `shouldResetUnitMcmvFlow`/`resetUnitMcmvFlow`
+ * (`original-project/src/components/unit/unitStatusHelpers.jsx`), chamada
+ * pelo `useEffect` de `UnitDetailPage` ao carregar a página (fiel ao
+ * `useEffect` do original). Usa `useMutation` em vez de `useQuery` porque a
+ * chamada tem efeito colateral (pode escrever em `units`/`activities`/
+ * `notifications`) e só deve rodar uma vez por carregamento de página, não
+ * a cada refetch/refoco de `useQuery`. Silenciosa: sem toast de sucesso/erro
+ * (fiel ao original, que não tem UI nenhuma para isso) — só invalida
+ * `unit`/`units` quando a função de fato reabriu o ciclo (`reset === true`).
+ */
+export function useCheckAndResetUnitMcmvFlow() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (unitId: string): Promise<CheckAndResetUnitMcmvFlowResult> => {
+      const { data, error } = await supabase.rpc('check_and_reset_unit_mcmv_flow', { p_unit_id: unitId });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (result, unitId) => {
+      if (result.reset) invalidateUnitsQueries(queryClient, unitId);
+    },
+  });
+}
+
+/**
  * Exclusão é sempre soft delete (`is_deleted = true`), igual ao resto do
  * sistema — sem policy de DELETE na RLS. Diferente do original
  * (`Units.jsx`, `canDeleteUnit`), que bloqueia a exclusão se a unidade tem
