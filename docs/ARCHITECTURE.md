@@ -620,6 +620,38 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   comportamento de referência pra portar. Revisitar se o produto
   quiser notificar investidores de algo no mural futuramente.
 
+**Checkup Financeiro** (fora da numeração de módulos do domínio —
+ferramenta interna de saneamento de dado, `FinanceCheckup.jsx` +
+`components/finance/financeCheckup.jsx` do original)
+- **Upgrade deliberado em relação ao original**: o original roda as 4
+  correções (merge de carteira duplicada, dedupe de parcela, conserto
+  de campo inconsistente, marcação de atraso) em loop sequencial no
+  client, sem transação — um erro no meio deixa dado pela metade
+  corrigido. Portado como uma única RPC (`run_finance_checkup`,
+  `0068_finance_checkup_rpc.sql`) rodando tudo numa transação —
+  qualquer falha desfaz tudo, mesmo padrão já usado em
+  `update_deal_stage`/RPCs de comissão.
+- **Interpretação, não port literal**: a categoria "parcela vencida
+  não marcada" do original filtra `status in ('previsto', 'pendente')`
+  — mas `pendente` nunca existiu como valor real do enum
+  `installment_status` neste projeto (era só rótulo calculado na UI do
+  original, já documentado em `0020_payment_installments.sql`).
+  Implementado como `status in ('previsto', 'parcial')` (os 2 estados
+  genuinamente em aberto, ainda não totalmente pagos) — mais fiel à
+  intenção do que uma tradução literal do nome do valor, mas é uma
+  decisão de engenharia, não uma confirmação 1:1 contra o original.
+- Gate de acesso "Acesso Negado" em página cheia é só UX — a
+  autorização de verdade é dentro da RPC (`security definer`,
+  confere `tenant_role = 'admin'` do chamador, nunca confia em quem
+  liga). Pequeno desvio do padrão do resto do projeto (que geralmente
+  deixa RLS/`ErrorState` genérico resolver, sem página de "Acesso
+  Negado" dedicada) — mantido porque o original também tinha esse gate
+  explícito.
+- Sem agendamento automático (cron): a ferramenta é executada
+  manualmente pelo admin, sob demanda — mesmo comportamento do
+  original (que também não tinha nenhuma automação, era sempre
+  clique manual).
+
 **Comparador de Unidades (dentro do Catálogo/Módulo 3)**
 - Sem débito técnico novo: tela só de leitura, reaproveita hooks já
   existentes (`useUnits`, `useProjects`, `useDocuments`,
@@ -947,4 +979,8 @@ auditoria do módulo 8, mas não específico dele)
 - [x] Comparador de Unidades (dentro do Catálogo/Módulo 3: ranking por score
   composto — progresso 40% + documentos 30% + financeiro 30%) implementado,
   auditado (sem achado) e em produção — https://vivlar.vercel.app
+- [x] Checkup Financeiro (dentro do Financeiro/Módulo 5: saneamento de
+  carteiras/parcelas duplicadas, campos inconsistentes e atraso não
+  marcado, via RPC transacional admin-only) implementado, pendente de
+  auditoria e deploy
 - [ ] Auditoria de arquitetura geral rodada

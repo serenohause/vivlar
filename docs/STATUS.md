@@ -42,6 +42,9 @@ região `sa-east-1`, ref `hppeqpmxupfghymkulne`)
 - ✅ Comparador de Unidades (dentro do Catálogo/Módulo 3) — ranking de
   unidades por score composto (progresso administrativo + documentos +
   saúde financeira), só leitura, sem tabela/migration nova
+- 🔜 Checkup Financeiro (dentro do Financeiro/Módulo 5) — saneamento de
+  carteiras/parcelas duplicadas via RPC transacional admin-only,
+  implementado, ainda **pendente de auditoria de segurança e deploy**
 
 ## Como o projeto é construído (processo, pra sessões novas entenderem)
 
