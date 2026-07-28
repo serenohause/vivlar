@@ -4,10 +4,14 @@ import type { MonthlyDefaultPoint, MonthlyRevenuePoint, PaymentMixPoint, Revenue
 /**
  * Gráficos de `FinanceDashboardPage` — tradução dos 4 gráficos `recharts` de
  * `original-project/src/pages/FinanceDashboard.jsx` para CSS puro. `recharts`
- * não está instalado neste projeto e não foi adicionado só para esta tela
- * (confirmado antes de codar) — mesma decisão/estilo já usada em
- * `features/dashboard/components/SalesFunnel.tsx` (barras simples, sem lib
- * de gráfico) para o funil de vendas do Dashboard Executivo.
+ * não estava instalado quando esta tela foi construída e não foi adicionado
+ * só por causa dela (confirmado antes de codar) — mesma decisão/estilo já
+ * usada em `features/dashboard/components/SalesFunnel.tsx` (barras simples,
+ * sem lib de gráfico) para o funil de vendas do Dashboard Executivo.
+ * `recharts` acabou entrando no projeto depois, só para
+ * `features/dashboard/components/RevenueChart.tsx` (gráfico de área +
+ * linha, mais difícil de reproduzir fielmente em CSS puro) — não é motivo
+ * para reescrever estes 4 gráficos, que já funcionam bem como estão.
  */
 
 function ChartEmptyState() {

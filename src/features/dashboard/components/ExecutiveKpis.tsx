@@ -1,4 +1,4 @@
-import { Briefcase, DollarSign, type LucideIcon } from 'lucide-react';
+import { Briefcase, DollarSign, TrendingUp, type LucideIcon } from 'lucide-react';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { useDeals } from '@/features/deals/hooks';
@@ -37,11 +37,15 @@ function KpiCard({ title, value, subtitle, icon: Icon }: KpiCardProps) {
 }
 
 /**
- * Tradução parcial da linha de 4 `KPICard` de `original-project/src/pages/Dashboard.jsx`
- * (Receita do Mês, Deals Ativos, Taxa de Conversão, Ticket Médio) — "Taxa de
- * Conversão" já é coberta por `CatalogStats` (formato `DashboardStats.jsx`);
- * aqui ficam as outras 3, todas com dado real agora que `deals` (módulo 4) e
- * `payment_installments` (módulo 5) existem.
+ * Tradução completa da linha de 4 `KPICard` de `original-project/src/pages/Dashboard.jsx`
+ * (linhas 186-230): Receita do Mês, Deals Ativos, Taxa de Conversão, Ticket
+ * Médio — todos com dado real agora que `deals` (módulo 4) e
+ * `payment_installments` (módulo 5) existem. Taxa de Conversão movida para
+ * cá (era um card solto em `CatalogStats`, junto de Projetos/Unidades/
+ * Clientes — posição errada; no original ela é o 3º KPI desta fileira, não
+ * um card de catálogo). Mesma fórmula de antes: vendido / (vendido + em
+ * aberto), adaptada ao enum `deal_sales_stage` unificado deste projeto (ver
+ * `docs/SCHEMA_PLAN.md` seção 2.2).
  */
 export function ExecutiveKpis() {
   const { data: deals, isLoading: loadingDeals } = useDeals();
@@ -57,8 +61,12 @@ export function ExecutiveKpis() {
       : 0;
   const monthlyRevenue = computeRecebidoNoMes(installments ?? []);
 
+  const won = soldDeals.length;
+  const open = activeDeals.length;
+  const conversionRate = won + open > 0 ? Math.round((won / (won + open)) * 100) : 0;
+
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
       <KpiCard
         title="Receita do Mês"
         value={isLoading ? '—' : formatCurrency(monthlyRevenue)}
@@ -70,6 +78,12 @@ export function ExecutiveKpis() {
         value={isLoading ? '—' : String(activeDeals.length)}
         subtitle={`${soldDeals.length} vendidos`}
         icon={Briefcase}
+      />
+      <KpiCard
+        title="Taxa de Conversão"
+        value={isLoading ? '—' : `${conversionRate}%`}
+        subtitle="Vendido / (vendido + em aberto)"
+        icon={TrendingUp}
       />
       <KpiCard
         title="Ticket Médio"
