@@ -27,27 +27,41 @@ Outros scripts: `npm run build`, `npm run typecheck`, `npm run lint`, `npm run p
 
 Construído por módulos, cada um deployado separadamente. Status atual e
 lista completa: **`docs/STATUS.md`** (é o que fica atualizado — não
-duplicar a lista aqui). Entrega em produção mais recente: Checkup
-Financeiro (dentro do Financeiro/Módulo 5 — saneamento transacional de
-carteiras/parcelas duplicadas, campos inconsistentes e atraso não
-marcado, via RPC `run_finance_checkup`, admin-only; deploy de
-2026-07-28). Migrations `0067`-`0068` confirmadas sincronizadas entre
-local e remoto (`npx supabase migration list --linked`) antes do
-deploy. RLS confirmada habilitada (`relrowsecurity = true`) nas 38
-tabelas com `tenant_id` do projeto remoto. Autorização real da RPC vive
-dentro da função (`security definer`, checagem explícita de
-`tenant_role = 'admin'`), não no `GRANT`: `anon` sem `EXECUTE`,
+duplicar a lista aqui). Entrega em produção mais recente: Automação de
+Distrato + Checkup Distrato (dentro de Unidades/Módulo 3 — distrato
+manual/automático de unidade ao aprovar Termo de Distrato, reset
+reativo de fluxo MCMV pós-distrato, reconciliação em lote admin-only
+corrigindo um bug real do original — a tela mostrava "Inconsistências
+Detectadas" mas o botão nunca reconciliava de verdade; RPCs
+`apply_unit_distrato`/`check_and_reset_unit_mcmv_flow`/
+`run_distrato_checkup`, migrations 0069-0071; deploy de 2026-07-28).
+Migrations `0069`-`0071` confirmadas sincronizadas entre local e
+remoto (`npx supabase migration list --linked` e
+`supabase_migrations.schema_migrations` via Management API) antes do
+deploy. RLS confirmada habilitada (`relrowsecurity = true`) nas 37
+tabelas com `tenant_id` do projeto remoto — nenhuma tabela nova criada
+por esta feature, só 3 RPCs `security definer` sobre tabelas já
+existentes. Autorização real das 3 RPCs vive dentro da função (checagem
+explícita de `tenant_role`: `admin`/`comercial`/`administrativo` para
+`apply_unit_distrato`/`check_and_reset_unit_mcmv_flow`, `admin` exato
+para `run_distrato_checkup`), não no `GRANT`: `anon` sem `EXECUTE`,
 `authenticated` com `EXECUTE` (confirmado via
 `information_schema.role_routine_grants` contra produção). Auditoria de
-segurança deste módulo sem achado crítico/alto. Smoke test pós-deploy:
-`supabase/tests/0068_finance_checkup_rpc.sql` reexecutado contra
-produção dentro de uma transação com `rollback` — as 8 checagens de
-isolamento entre tenants (dry run, correção real, bloqueio de
-`tenant_role` não-admin, bloqueio de usuário sem `tenant_id` no claim,
-grants de `anon`/`authenticated`) passaram, sem deixar dado sintético
-no banco.
+segurança deste módulo sem achado crítico/alto (um achado baixo aceito
+e documentado: `run_distrato_checkup` devolve o texto cru de `sqlerrm`
+por unidade que falha, mas só dados do próprio tenant do admin que
+chamou, sem vazamento cross-tenant). Smoke test pós-deploy: chamada
+anônima às 3 RPCs novas em produção recusada (`401`/`permission
+denied`, sem `GRANT` pra `anon`) e leitura anônima de `units` segue
+recusada (`401 permission denied`), confirmando que o isolamento por
+RLS segue ativo, não só localmente.
 
-Entrega anterior: Comparador de Unidades (dentro do Catálogo/Módulo 3 —
+Entrega anterior: Checkup Financeiro (dentro do Financeiro/Módulo 5 —
+saneamento transacional de carteiras/parcelas duplicadas, campos
+inconsistentes e atraso não marcado, via RPC `run_finance_checkup`,
+admin-only; deploy de 2026-07-28).
+
+Entrega anterior a essa: Comparador de Unidades (dentro do Catálogo/Módulo 3 —
 ranking de unidades por score composto: progresso administrativo 40% +
 documentos 30% + saúde financeira 30%; deploy de 2026-07-28). Só
 leitura, sem migration nova. Auditoria de segurança deste módulo sem

@@ -1065,8 +1065,9 @@ auditoria do módulo 8, mas não específico dele)
   carteiras/parcelas duplicadas, campos inconsistentes e atraso não
   marcado, via RPC transacional admin-only) implementado, auditado (sem
   achado crítico/alto) e em produção — https://vivlar.vercel.app
-- [ ] Automação de Distrato + Checkup Distrato (dentro de
+- [x] Automação de Distrato + Checkup Distrato (dentro de
   Unidades/Módulo 3: distrato manual/automático, reset reativo de
   fluxo MCMV, reconciliação em lote admin-only corrigindo um bug real
-  do original) implementado — auditoria e deploy pendentes
+  do original) implementado, auditado (sem achado crítico/alto) e em
+  produção — https://vivlar.vercel.app
 - [ ] Auditoria de arquitetura geral rodada
