@@ -196,6 +196,12 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   `updateCheckMutation`/`checkCanAdvance`, gate de avanço de
   `admin_status`), só nunca tinha sido conferido linha a linha até então.
   Tabela criada em `0048_unit_checks.sql`.
+- `RealEstateAgenciesListPage`: colunas "Deals"/"Vendas"/"Volume Total"
+  do original (`getAgencyMetrics` — cruza `brokers` com `deals` em 2
+  níveis: imobiliária -> corretores -> negócios) ficaram de fora numa
+  leva inicial ("Corretores", contagem simples, foi mantida). Fechado
+  numa leva posterior (pedido do usuário) — reaproveita `useDeals()`
+  já existente, sem query nova.
 
 **Módulo 5 — Financeiro (Contas a Receber, Dashboard Financeiro, Inadimplência)**
 - Sem `FinancingProcess` (processo de financiamento bancário) — schema

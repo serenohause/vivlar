@@ -12,35 +12,52 @@ import { LoadingInline } from '@/components/ui/loading-inline';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { useBrokers } from '@/features/brokers/hooks';
+import { useDeals } from '@/features/deals/hooks';
 import { RealEstateAgencyEditDialog } from '@/features/real-estate-agencies/components/RealEstateAgencyEditDialog';
 import { AGENCY_STATUS_LABELS } from '@/features/real-estate-agencies/constants';
 import { useRealEstateAgencies } from '@/features/real-estate-agencies/hooks';
 import type { RealEstateAgency } from '@/features/real-estate-agencies/types';
 import { pageUrl } from '@/lib/page-url';
 
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(value);
+}
+
 /**
  * Tradução de `original-project/src/pages/RealEstateAgencies.jsx`: cadastro
  * vira página própria (`/real-estate-agencies/novo`, mesma convenção já
  * usada no resto do sistema), edição continua em dialog
  * (`RealEstateAgencyEditDialog`). Colunas "Deals"/"Vendas"/"Volume Total"
- * do original NÃO estão aqui — dependem de cruzar `brokers` com `deals` em
- * dois níveis (imobiliária -> corretores -> negócios), o que passa de uma
- * contagem simples; sinalizado como fora do escopo desta leva. A coluna
- * "Corretores" (contagem simples, um único filtro em `brokers`) foi
- * mantida.
+ * do original — cruzam `brokers` com `deals` em dois níveis (imobiliária ->
+ * corretores -> negócios, `getAgencyMetrics` do original) — reaproveitam
+ * `useDeals()`/`useBrokers()` já existentes, sem query nova.
  */
 export function RealEstateAgenciesListPage() {
   const { data: agencies, isLoading, isError, refetch } = useRealEstateAgencies();
   const { data: brokers } = useBrokers();
+  const { data: deals } = useDeals();
 
   const [search, setSearch] = useState('');
   const [editingAgency, setEditingAgency] = useState<RealEstateAgency | null>(null);
 
   const all = agencies ?? [];
   const allBrokers = brokers ?? [];
+  const allDeals = deals ?? [];
 
   function getBrokersCount(agencyId: string): number {
     return allBrokers.filter((b) => b.real_estate_agency_id === agencyId).length;
+  }
+
+  function getAgencyMetrics(agencyId: string) {
+    const agencyBrokerIds = new Set(allBrokers.filter((b) => b.real_estate_agency_id === agencyId).map((b) => b.id));
+    const agencyDeals = allDeals.filter((d) => d.broker_id != null && agencyBrokerIds.has(d.broker_id));
+    const soldDeals = agencyDeals.filter((d) => d.sales_stage === 'vendido');
+
+    return {
+      dealsCount: agencyDeals.length,
+      soldCount: soldDeals.length,
+      totalValue: soldDeals.reduce((sum, d) => sum + (d.final_sale_value ?? d.expected_sale_value ?? 0), 0),
+    };
   }
 
   const filteredAgencies = all.filter((agency) => {
@@ -89,13 +106,19 @@ export function RealEstateAgenciesListPage() {
                   <TableHead>Imobiliária</TableHead>
                   <TableHead>Contato</TableHead>
                   <TableHead className="text-center">Corretores</TableHead>
+                  <TableHead className="text-center">Deals</TableHead>
+                  <TableHead className="text-center">Vendas</TableHead>
+                  <TableHead className="text-right">Volume Total</TableHead>
                   <TableHead className="text-center">Comissão</TableHead>
                   <TableHead className="text-center">Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredAgencies.map((agency) => (
+                {filteredAgencies.map((agency) => {
+                  const metrics = getAgencyMetrics(agency.id);
+
+                  return (
                   <TableRow key={agency.id}>
                     <TableCell>
                       <p className="font-medium">{agency.name}</p>
@@ -114,6 +137,11 @@ export function RealEstateAgenciesListPage() {
                         {getBrokersCount(agency.id)}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-center">{metrics.dealsCount}</TableCell>
+                    <TableCell className="text-center">
+                      <span className="font-medium text-green-600">{metrics.soldCount}</span>
+                    </TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(metrics.totalValue)}</TableCell>
                     <TableCell className="text-center">
                       <Badge variant="outline">{agency.commission_percentage}%</Badge>
                     </TableCell>
@@ -135,7 +163,8 @@ export function RealEstateAgenciesListPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
