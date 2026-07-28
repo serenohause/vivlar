@@ -1004,6 +1004,31 @@ auditoria do módulo 8, mas não específico dele)
 - Alto (dependência, reincidente, não deste módulo): mesmo advisory de
   `react-router-dom`. Continua acompanhado.
 
+**Automação de Distrato + Checkup Distrato** (auditoria de 2026-07-28)
+- Nenhum achado crítico/alto. Confirmado: `tenant_id`/`tenant_role`
+  sempre lidos de dentro da função (`auth.jwt()`, nunca de parâmetro ou
+  confiança em quem chamou) nas 3 RPCs (`apply_unit_distrato`,
+  `check_and_reset_unit_mcmv_flow`, `run_distrato_checkup`);
+  `run_distrato_checkup` exige `tenant_role = 'admin'` exato, critério
+  mais restrito que o das 2 RPCs que ela chama por dentro, então não há
+  caminho pra um papel não-admin disparar reconciliação em massa;
+  bloco `exception when others` por unidade nunca transforma erro real
+  em sucesso silencioso; gatilho automático em
+  `useUpdateDocumentStatus` isolado em `try/catch` que nunca reverte a
+  aprovação do documento, e inacessível a `cliente`/`investidor` (RLS
+  de `documents`, 0032, já barra UPDATE antes de chegar no gatilho);
+  sem SQL dinâmico em nenhuma das 3 funções, `p_reason`/`p_source`
+  usados só em comparação/`case`, nunca concatenados em query.
+- Baixo, aceito: `run_distrato_checkup` devolve o texto cru de
+  `sqlerrm` em `details.*.error` quando uma unidade falha — só expõe
+  detalhe interno (nome de constraint/coluna) do próprio tenant do
+  admin que chamou (a query candidata já filtra por `tenant_id` antes
+  do loop, sem vazamento cross-tenant). Aceito como está; se quiser
+  reduzir verbosidade no futuro, trocar por mensagem genérica + log
+  server-side.
+- Alto (dependência, reincidente, não desta feature): mesmo advisory de
+  `react-router-dom`. Continua acompanhado.
+
 ## Desvios do padrão do CLAUDE.md
 
 - Etapa 2 (`ui-prototyper` + `prototypes/`) substituída por
