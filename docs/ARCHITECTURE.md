@@ -1105,6 +1105,15 @@ auditoria do módulo 8, mas não específico dele)
   de qualquer forma), só uma chamada de rede desnecessária pra
   não-admin. Não corrigido, prioridade baixíssima.
 
+**Dashboard Executivo — blocos operacionais/equipe** (auditoria de
+2026-07-28)
+- Nenhum achado de nenhuma severidade. Confirmado: os 6 blocos novos
+  não fazem query direta ao Supabase, só reaproveitam hooks já
+  existentes de outras features (autorização real continua sendo a
+  RLS já auditada dessas tabelas); sem `dangerouslySetInnerHTML`; sem
+  URL construída a partir de input de usuário; sem mutation nenhuma
+  (só leitura).
+
 ## Desvios do padrão do CLAUDE.md
 
 - Etapa 2 (`ui-prototyper` + `prototypes/`) substituída por
