@@ -387,6 +387,31 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   unidade não tiver negócio vendido associado).
 
 **Módulo 10 — Investidores**
+- **Achado real, corrigido numa leva posterior** (pedido do usuário,
+  "layout diferente do original"): `InvestmentContributionDetail.jsx`/
+  `InvestmentReturnDetail.jsx` (páginas de detalhe de um aporte/retorno
+  específico) tinham ficado de fora com um comentário em
+  `AppRoutes.tsx` alegando que o original "não tinha essas páginas de
+  fato conectadas, só links quebrados" — **essa alegação estava
+  errada**, verificado por leitura do original: `pages.config.js`
+  registra as duas normalmente, `Breadcrumbs.jsx` tem entradas
+  próprias, `notificationService.jsx` gera deep-links reais pra elas,
+  e as próprias listas linkavam via `<Link>` com ícone `Eye` — eram
+  páginas reais e navegáveis. Portadas agora (`InvestmentContribution
+  DetailPage.tsx`/`InvestmentReturnDetailPage.tsx`, rotas
+  `/investment-contributions/:id`/`/investment-returns/:id`), botão
+  `Eye` restaurado nas 2 listas. Comentário incorreto em `AppRoutes.tsx`
+  corrigido.
+- `InvestmentReturnDetailPage` sempre mostra "Nenhum comprovante
+  anexado" (nunca condicional como a de Aporte) — `investment_returns`
+  genuinamente não tem colunas `comprovante_url`/`comprovante_nome` no
+  schema (só `investment_contributions` tem, decisão já registrada em
+  `0043_investment_contributions.sql` — nem o original tinha jeito de
+  preencher esse campo via formulário em nenhuma das duas entidades,
+  só exibição condicional se já viesse preenchido por fora).
+- `InvestorDetailPage` não usava o `PageHeader` compartilhado
+  (reimplementava o cabeçalho manualmente, com espaçamento diferente
+  do resto do app) — corrigido, agora usa o componente padrão.
 - Escopo desta leva é só o lado interno/admin — decisão explícita do
   usuário (2026-07-23), mesmo critério da Manutenção. `InvestorProjects.jsx`,
   `InvestorProjectDetail.jsx`, `InvestorContributions.jsx`,
