@@ -698,6 +698,41 @@ do original)
   o banco remoto real. Recomenda-se uma passada manual antes de
   anunciar a feature pro time.
 
+**Sessões WhatsApp** (fora da numeração de módulos — porta
+`pages/WhatsAppSessions.jsx` do original)
+- **Feature já pela metade no original, replicada tão funcional quanto
+  lá estava (decisão explícita do usuário, não descuido)**: a entidade
+  `WhatsAppSession` (schema inferido só por uso, nunca exportado como
+  `.jsonc` no repo Base44) claramente foi desenhada pra um bot
+  conversacional real (`flow_type` manutenção/corretor, `state` livre
+  tipo state-machine, `status` incluindo `escalada` = escalar pra
+  humano) — mas nenhum código do original (frontend nem as 22 edge
+  functions) cria ou atualiza essa entidade. Nenhuma integração de
+  API de WhatsApp (Twilio/Meta/Z-API/Evolution/webhook) existe em
+  lugar nenhum do projeto original. A própria automação de cobrança
+  (`inadimplenciaAutomation`) lista `WHATSAPP` como canal planejado
+  numa regra e nunca implementa o envio (só o branch de e-mail
+  existe) — confirma que a integração de WhatsApp como um todo nunca
+  saiu do papel no produto original, não é lacuna nossa.
+- Construído aqui: só schema (`whatsapp_sessions`,
+  `0072_whatsapp_sessions.sql`) + RLS (`0073_rls_whatsapp_sessions.sql`,
+  só `admin` lê, ninguém escreve) + tela somente-leitura
+  (`WhatsAppSessionsPage.tsx`) com os mesmos 2 filtros do original.
+  Nenhum bot, nenhuma integração externa, nenhuma RPC de
+  criar/enviar/escalar sessão — não inventado, fiel à ausência no
+  original.
+- **Sem policy de escrita nenhuma** (nem para `admin`) — decisão
+  registrada em `0073`: não existe ação de UI/regra de negócio que
+  justifique escrita direta; o caminho real de um bot futuro escrever
+  seria via `service_role`/Edge Function (bypassa RLS de qualquer
+  forma), então abrir escrita pra `admin` não prepara terreno nenhum,
+  só aumenta superfície sem uso.
+- Tabela fica genuinamente vazia em produção (nada escreve nela) — tela
+  trata esse estado vazio explicando o motivo (bot nunca integrado),
+  não como se fosse erro/falha.
+- Não requer auditoria de segurança do fluxo de bot (não existe) — só
+  a RLS/gate admin-only da tela em si.
+
 **Comparador de Unidades (dentro do Catálogo/Módulo 3)**
 - Sem débito técnico novo: tela só de leitura, reaproveita hooks já
   existentes (`useUnits`, `useProjects`, `useDocuments`,
@@ -1070,4 +1105,7 @@ auditoria do módulo 8, mas não específico dele)
   fluxo MCMV, reconciliação em lote admin-only corrigindo um bug real
   do original) implementado, auditado (sem achado crítico/alto) e em
   produção — https://vivlar.vercel.app
+- [ ] Sessões WhatsApp (tela admin-only somente leitura — feature que
+  já estava pela metade no original, sem bot/integração nenhuma)
+  implementado — auditoria e deploy pendentes
 - [ ] Auditoria de arquitetura geral rodada

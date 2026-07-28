@@ -51,6 +51,12 @@ região `sa-east-1`, ref `hppeqpmxupfghymkulne`)
   reativo de fluxo MCMV, reconciliação em lote admin-only (RPCs
   `apply_unit_distrato`/`check_and_reset_unit_mcmv_flow`/
   `run_distrato_checkup`, migrations 0069-0071)
+- 🚧 Sessões WhatsApp (item de menu "Sistema") — tela admin-only
+  somente leitura sobre `whatsapp_sessions`; feature que já estava pela
+  metade no original (schema+tela existiam, bot/integração de envio
+  nunca foi construído lá) — replicada tão funcional quanto o original,
+  sem inventar o bot que falta (migrations 0072-0073) — construído,
+  falta auditoria de segurança e deploy
 
 ## Como o projeto é construído (processo, pra sessões novas entenderem)
 
