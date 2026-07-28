@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/AuthContext';
 import type { StatusTransition } from '@/features/deals/types';
 import type { UnitMutationPayload } from '@/features/units/schemas';
-import type { Unit, UnitAdminStatus, UnitStatus } from '@/features/units/types';
+import type { DistratoCheckupReport, Unit, UnitAdminStatus, UnitStatus } from '@/features/units/types';
 import { supabase } from '@/lib/supabase';
 
 const UNITS_QUERY_KEY = ['units'] as const;
@@ -320,6 +320,45 @@ export function useCheckAndResetUnitMcmvFlow() {
     },
     onSuccess: (result, unitId) => {
       if (result.reset) invalidateUnitsQueries(queryClient, unitId);
+    },
+  });
+}
+
+/**
+ * Executa `run_distrato_checkup` (ver
+ * `supabase/migrations/0071_distrato_checkup_rpc.sql`) em modo simulação
+ * (`dryRun: true`, só detecta) ou aplicando correções (`dryRun: false`,
+ * reconcilia via `apply_unit_distrato`/reseta via
+ * `check_and_reset_unit_mcmv_flow` unidade por unidade) — usada por
+ * `DistratoCheckupPage`. A autorização real (`tenant_role = 'admin'` EXATO,
+ * mais restrito que o `admin/comercial/administrativo` das duas RPCs que
+ * ela chama por baixo) é verificada DENTRO da função (`security definer`);
+ * qualquer outro papel recebe erro `42501` desta chamada, mesmo que a UI já
+ * esconda a tela para quem não é admin (defesa em profundidade, não confia
+ * só no gate do frontend — mesmo padrão de `useRunFinanceCheckup`).
+ *
+ * Quando `dryRun: false` e a função de fato corrige algo, `units`/`deals`
+ * mudaram por baixo do React Query (não foi nenhuma das mutations deste
+ * arquivo) — invalida as duas para qualquer tela que dependa delas
+ * (`UnitsListPage`, `CRMPage`, `UnitDetailPage`, etc.) refletir o
+ * saneamento no próximo fetch.
+ */
+export function useRunDistratoCheckup() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (dryRun: boolean): Promise<DistratoCheckupReport> => {
+      const { data, error } = await supabase.rpc('run_distrato_checkup', { p_dry_run: dryRun });
+
+      if (error) throw error;
+      return data as DistratoCheckupReport;
+    },
+    onSuccess: (report) => {
+      if (report.corrections_applied) {
+        invalidateUnitsQueries(queryClient);
+        queryClient.invalidateQueries({ queryKey: ['deals'] });
+        queryClient.invalidateQueries({ queryKey: ['unit-deals'] });
+      }
     },
   });
 }

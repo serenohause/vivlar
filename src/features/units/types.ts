@@ -59,3 +59,68 @@ export interface Unit {
   created_at: string;
   updated_at: string;
 }
+
+/**
+ * Tradução 1:1 do `jsonb` retornado por `run_distrato_checkup` (ver
+ * `supabase/migrations/0071_distrato_checkup_rpc.sql`) — usada só por
+ * `DistratoCheckupPage`. `result` é o mesmo em dry run e execução real
+ * ('pending_dry_run' só no primeiro caso; 'reconciled'/'reset' ou 'error'
+ * só no segundo) — por isso os campos que só existem num dos dois casos
+ * (`apply_unit_distrato`, `check_and_reset_unit_mcmv_flow`, `error`,
+ * `deal_sales_stage`) são opcionais em vez de um tipo discriminado por
+ * `result` (mais simples de consumir na UI, mesmo padrão de
+ * `FinanceCheckup*Item` em `features/finance/types.ts`).
+ */
+export type DistratoCheckupResult = 'pending_dry_run' | 'reconciled' | 'reset' | 'error';
+
+export interface DistratoCheckupReconciliationItem {
+  unit_id: string;
+  sku: string;
+  unit_status: UnitStatus;
+  result: DistratoCheckupResult;
+  /** Só presente quando `result === 'reconciled'`. */
+  apply_unit_distrato?: {
+    unit_id: string;
+    deal_id: string | null;
+    previous_admin_status: UnitAdminStatus | null;
+    source: string;
+    applied_at: string;
+  };
+  /** Só presente quando `result === 'error'` — texto cru de `sqlerrm`. */
+  error?: string;
+}
+
+export interface DistratoCheckupMcmvResetItem {
+  unit_id: string;
+  sku: string;
+  deal_id: string;
+  /** Só presente em dry run (`result === 'pending_dry_run'`). */
+  deal_sales_stage?: string;
+  result: DistratoCheckupResult;
+  /** Só presente quando `result === 'reset'`. */
+  check_and_reset_unit_mcmv_flow?: {
+    reset: boolean;
+    deal_id?: string;
+  };
+  /** Só presente quando `result === 'error'` — texto cru de `sqlerrm`. */
+  error?: string;
+}
+
+/** Relatório completo retornado por `run_distrato_checkup` — mesma forma em dry run e execução real (só `dry_run`/`corrections_applied` e o `result` de cada item de `details` mudam). */
+export interface DistratoCheckupReport {
+  dry_run: boolean;
+  corrections_applied: boolean;
+  executed_at: string;
+  summary: {
+    total_units: number;
+    reconciliation_candidates: number;
+    mcmv_reset_candidates: number;
+    reconciled: number;
+    mcmv_reset: number;
+    errors: number;
+  };
+  details: {
+    reconciliation: DistratoCheckupReconciliationItem[];
+    mcmv_reset: DistratoCheckupMcmvResetItem[];
+  };
+}

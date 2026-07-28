@@ -52,6 +52,7 @@ import { SettingsPage } from '@/features/settings/pages/SettingsPage';
 import { TerrainDetailPage } from '@/features/terrains/pages/TerrainDetailPage';
 import { TerrainFormPage } from '@/features/terrains/pages/TerrainFormPage';
 import { TerrainsListPage } from '@/features/terrains/pages/TerrainsListPage';
+import { DistratoCheckupPage } from '@/features/units/pages/DistratoCheckupPage';
 import { UnitDetailPage } from '@/features/units/pages/UnitDetailPage';
 import { UnitFormPage } from '@/features/units/pages/UnitFormPage';
 import { UnitsComparisonPage } from '@/features/units/pages/UnitsComparisonPage';
@@ -203,6 +204,15 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 // a RPC já é `admin`-only por dentro (`security definer` com checagem de
 // `tenant_role` no corpo), então o gate do frontend aqui é só UX (evitar o
 // usuário clicar e só descobrir pelo erro da RPC), não a autorização real.
+// E agora "DistratoCheckup" (Checkup de Distratos: reconciliação de
+// unidades com Termo de Distrato aprovado e status/negócio inconsistente +
+// reset em lote do fluxo MCMV, via RPC `run_distrato_checkup`, ver
+// `supabase/migrations/0071_distrato_checkup_rpc.sql`) — mesma convenção de
+// "FinanceCheckup" acima: item de nav já existia em SISTEMA (só para
+// `admin`, ver `features/dashboard/navigation.ts`) mas caía em "em
+// construção" até agora; sem sub-rota; "Acesso Negado" dentro da própria
+// página (ver `DistratoCheckupPage.tsx`), defesa em profundidade sobre a
+// checagem `tenant_role = 'admin'` já feita dentro da RPC.
 const PAGES_WITH_REAL_ROUTE = [
   'Terrains',
   'Projects',
@@ -234,6 +244,7 @@ const PAGES_WITH_REAL_ROUTE = [
   'Settings',
   'Notifications',
   'FinanceCheckup',
+  'DistratoCheckup',
 ];
 const COMING_SOON_PAGE_NAMES = getAllNavPageNames().filter(
   (name) => name !== 'Dashboard' && !PAGES_WITH_REAL_ROUTE.includes(name)
@@ -330,6 +341,7 @@ export function AppRoutes() {
           <Route path={pageUrl('Notifications')} element={<NotificationsPage />} />
 
           <Route path={pageUrl('FinanceCheckup')} element={<FinanceCheckupPage />} />
+          <Route path={pageUrl('DistratoCheckup')} element={<DistratoCheckupPage />} />
 
           {COMING_SOON_PAGE_NAMES.map((pageName) => (
             <Route key={pageName} path={pageUrl(pageName)} element={<ComingSoonPage pageName={pageName} />} />
