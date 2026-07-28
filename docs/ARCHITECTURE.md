@@ -894,6 +894,19 @@ auditoria do módulo 8, mas não específico dele)
   reatribuir `user_id` de qualquer vínculo do próprio tenant. Nunca
   cruza fronteira de tenant.
 
+**Módulo 15 — Notificações** (auditoria de 2026-07-27)
+- Nenhum achado crítico/alto. Confirmado (teste de isolamento rodado
+  de novo contra produção, não só leitura de código): trigger
+  `notifications_prevent_mode_switch` bloqueia o vetor de escalação já
+  fechado na etapa de RLS; inserts de notificação pessoal (admin→cliente,
+  cliente→si mesmo) usam sempre `user_id`/`tenant_id` de fonte confiável
+  (linha já persistida no banco ou claim do JWT, nunca de input direto);
+  regressão nula nos 5 módulos cujos hooks foram alterados (Financeiro,
+  CRM, Comissões, Manutenção) — lógica de negócio principal roda antes
+  do bloco de notificação, sempre em `try/catch` isolado de verdade.
+- Alto (dependência, reincidente desde o módulo 11): mesmo advisory de
+  `react-router-dom`, mesma avaliação, não piorou. Continua acompanhado.
+
 ## Desvios do padrão do CLAUDE.md
 
 - Etapa 2 (`ui-prototyper` + `prototypes/`) substituída por
