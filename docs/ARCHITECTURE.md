@@ -1190,6 +1190,22 @@ auditoria do módulo 8, mas não específico dele)
 - Alto (dependência, reincidente, não desta mudança): mesmo advisory
   de `react-router-dom`. Continua acompanhado.
 
+**Mapa interativo de Terrenos** (auditoria de 2026-07-28)
+- Nenhum achado crítico/médio. Confirmado: sem query direta ao
+  Supabase nos componentes de mapa (só recebem dado já carregado por
+  hooks existentes); requisições de tile (OpenStreetMap/Esri) não
+  enviam coordenada exata, só índice de tile — sem vazamento de
+  credencial nem de dado sensível pra terceiro; sem
+  `dangerouslySetInnerHTML`; `leaflet@1.9.4` sem vulnerabilidade
+  conhecida.
+- Baixo, corrigido: `terrainLocationSchema` (já existia) não era
+  chamado antes do `mutate()` em `TerrainLocationCard.handleLocationSave`
+  — seguro na prática (única origem do valor era `L.LatLng`, sempre
+  `number`), mas defesa em profundidade incompleta. Corrigido:
+  `safeParse` antes do `mutate`, erro tratado com toast.
+- Alto (dependência, reincidente, não desta mudança): mesmo advisory
+  de `react-router-dom`. Continua acompanhado.
+
 ## Desvios do padrão do CLAUDE.md
 
 - Etapa 2 (`ui-prototyper` + `prototypes/`) substituída por

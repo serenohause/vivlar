@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TerrainPinSelector } from '@/features/terrains/components/TerrainPinSelector';
 import { useUpdateTerrainLocation } from '@/features/terrains/hooks';
-import type { TerrainLocationInput } from '@/features/terrains/schemas';
+import { terrainLocationSchema, type TerrainLocationInput } from '@/features/terrains/schemas';
 import type { Terrain } from '@/features/terrains/types';
 
 interface TerrainLocationCardProps {
@@ -34,7 +34,13 @@ export function TerrainLocationCard({ terrain, isTransformed }: TerrainLocationC
   }
 
   function handleLocationSave(location: TerrainLocationInput) {
-    updateLocation.mutate(location, {
+    const parsed = terrainLocationSchema.safeParse(location);
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? 'Coordenadas inválidas.');
+      return;
+    }
+
+    updateLocation.mutate(parsed.data, {
       onSuccess: () => {
         toast.success('Localização atualizada com sucesso!');
         setIsEditing(false);
