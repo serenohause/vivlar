@@ -1064,6 +1064,21 @@ auditoria do módulo 8, mas não específico dele)
 - Alto (dependência, reincidente, não desta feature): mesmo advisory de
   `react-router-dom`. Continua acompanhado.
 
+**Sessões WhatsApp** (auditoria de 2026-07-28)
+- Nenhum achado de nenhuma severidade. Confirmado: grants de
+  `insert`/`update` concedidos em 0072 foram revogados em 0073 (só
+  `select` sobra pra `authenticated`, testado na prática — INSERT/
+  UPDATE/DELETE falham mesmo pra `admin`); `anon` sem privilégio
+  nenhum (default privileges já bloqueados globalmente desde `0003`);
+  sem view/RPC expondo a tabela por via alternativa; RLS (`tenant_role
+  = 'admin'`) é a autorização real, gate de UI é só redundância de UX;
+  renderização de `phone`/`state` é JSX puro, sem
+  `dangerouslySetInnerHTML`, sem risco de injeção.
+- Observação de qualidade (não segurança): hook de leitura dispara
+  antes do gate `isAdmin` confirmar — sem risco (RLS filtra as linhas
+  de qualquer forma), só uma chamada de rede desnecessária pra
+  não-admin. Não corrigido, prioridade baixíssima.
+
 ## Desvios do padrão do CLAUDE.md
 
 - Etapa 2 (`ui-prototyper` + `prototypes/`) substituída por
