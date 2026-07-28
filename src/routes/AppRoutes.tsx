@@ -57,6 +57,7 @@ import { UnitDetailPage } from '@/features/units/pages/UnitDetailPage';
 import { UnitFormPage } from '@/features/units/pages/UnitFormPage';
 import { UnitsComparisonPage } from '@/features/units/pages/UnitsComparisonPage';
 import { UnitsListPage } from '@/features/units/pages/UnitsListPage';
+import { WhatsAppSessionsPage } from '@/features/whatsapp/pages/WhatsAppSessionsPage';
 import { pageUrl } from '@/lib/page-url';
 import { AppShell } from '@/routes/AppShell';
 import { ComingSoonPage } from '@/routes/ComingSoonPage';
@@ -212,7 +213,19 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute';
 // `admin`, ver `features/dashboard/navigation.ts`) mas caía em "em
 // construção" até agora; sem sub-rota; "Acesso Negado" dentro da própria
 // página (ver `DistratoCheckupPage.tsx`), defesa em profundidade sobre a
-// checagem `tenant_role = 'admin'` já feita dentro da RPC.
+// checagem `tenant_role = 'admin'` já feita dentro da RPC. E agora
+// "WhatsAppSessions" (Sessões WhatsApp: monitoramento do estado de conversas
+// de um bot de WhatsApp externo que nunca foi integrado a este repositório,
+// ver `supabase/migrations/0072_whatsapp_sessions.sql`) — mesma convenção de
+// "FinanceCheckup"/"DistratoCheckup" acima: item de nav já existia em
+// SISTEMA (só para `admin`, ver `features/dashboard/navigation.ts`) mas caía
+// em "em construção" até agora; sem sub-rota; "Acesso Negado" dentro da
+// própria página (ver `WhatsAppSessionsPage.tsx`). Diferente das outras duas,
+// não é uma tela de checkup/RPC — é 100% leitura direta da tabela, sem botão
+// de ação nenhum (a tabela não tem policy de escrita nenhuma, ver
+// `0073_rls_whatsapp_sessions.sql`), e trata o estado vazio como o cenário
+// normal de produção (a tabela nunca foi alimentada por nenhum bot real),
+// não como uma falha de carregamento.
 const PAGES_WITH_REAL_ROUTE = [
   'Terrains',
   'Projects',
@@ -245,6 +258,7 @@ const PAGES_WITH_REAL_ROUTE = [
   'Notifications',
   'FinanceCheckup',
   'DistratoCheckup',
+  'WhatsAppSessions',
 ];
 const COMING_SOON_PAGE_NAMES = getAllNavPageNames().filter(
   (name) => name !== 'Dashboard' && !PAGES_WITH_REAL_ROUTE.includes(name)
@@ -342,6 +356,7 @@ export function AppRoutes() {
 
           <Route path={pageUrl('FinanceCheckup')} element={<FinanceCheckupPage />} />
           <Route path={pageUrl('DistratoCheckup')} element={<DistratoCheckupPage />} />
+          <Route path={pageUrl('WhatsAppSessions')} element={<WhatsAppSessionsPage />} />
 
           {COMING_SOON_PAGE_NAMES.map((pageName) => (
             <Route key={pageName} path={pageUrl(pageName)} element={<ComingSoonPage pageName={pageName} />} />
