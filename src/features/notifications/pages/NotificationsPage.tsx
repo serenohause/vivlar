@@ -245,7 +245,7 @@ function NotificationRow({ notification, isAdmin, onMarkAsRead, onDelete, markAs
   const isNew = notification.status === 'NOVA';
 
   const content = (
-    <Card className={`border-0 shadow-sm transition-all hover:shadow-md ${isNew ? 'border-l-4 border-l-blue-500 bg-blue-50' : 'bg-card'} ${detailLink ? 'cursor-pointer' : ''}`}>
+    <Card className={`shadow-sm transition-all hover:shadow-md ${isNew ? 'border-l-4 border-l-blue-500 bg-blue-50' : 'bg-card'} ${detailLink ? 'cursor-pointer' : ''}`}>
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-1 items-start gap-4">
