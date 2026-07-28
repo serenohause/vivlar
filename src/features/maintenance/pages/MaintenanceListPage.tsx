@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Eye, Plus, Search, Trash2, Wrench } from 'lucide-react';
+import { AlertTriangle, Eye, FileDown, Plus, Search, Trash2, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -13,8 +13,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
@@ -22,6 +24,7 @@ import { LoadingInline } from '@/components/ui/loading-inline';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { StatsCard } from '@/components/shared/StatsCard';
 import { useAuth } from '@/features/auth/AuthContext';
 import { useClients } from '@/features/clients/hooks';
 import { useDeals } from '@/features/deals/hooks';
@@ -32,22 +35,29 @@ import { MAINTENANCE_PRIORITY_FILTER_ORDER, MAINTENANCE_STATUS_FILTER_ORDER } fr
 import { useMaintenanceRequests, useSoftDeleteMaintenanceRequest } from '@/features/maintenance/hooks';
 import { MAINTENANCE_CATEGORY_OPTIONS } from '@/features/maintenance/types';
 import type { MaintenancePriority, MaintenanceRequest, MaintenanceStatus } from '@/features/maintenance/types';
+import { exportMaintenanceReportToPdf, type MaintenanceReportMode } from '@/features/maintenance/utils/maintenance-report-pdf';
 import { useProjects } from '@/features/projects/hooks';
 import { useUnits } from '@/features/units/hooks';
 import { pageUrl } from '@/lib/page-url';
 
 /**
  * Tradução de `original-project/src/pages/AdminMaintenance.jsx` — lista de
- * chamados de manutenção pós-entrega, com KPIs, filtros, tabela e dialog de
- * criação. Diferenças documentadas em relação ao original:
+ * chamados de manutenção pós-entrega, com KPIs, filtros, tabela, dialog de
+ * criação e geração de relatório em PDF. Diferenças documentadas em relação
+ * ao original:
  *
- * - Sem geração de PDF (`FileDown`/dialog de exportação) — fora de escopo
- *   desta leva, registrado como débito técnico.
- * - Sem coluna "Criado Por" distinguindo cliente/operador: sem portal do
- *   cliente no projeto ainda, todo chamado nasce de um operador interno
- *   (`client_id` é só referência de para quem é o chamado, ver comentário
- *   no topo de `0037_maintenance_requests.sql`) — a distinção do original
- *   não se aplica.
+ * - Coluna "Criado Por" mostra "Cliente"/"Operador"/"—", sem o nome do
+ *   operador embaixo (frontend não tem diretório de nome/e-mail de outros
+ *   usuários do tenant — mesma limitação já documentada na coluna
+ *   "Responsável" abaixo). O comentário anterior deste arquivo dizia que
+ *   essa distinção "não se aplica" por falta de portal do cliente — isso
+ *   estava desatualizado: o Portal do Cliente (módulo 11) já existe e já
+ *   cria chamados de verdade (`ClientMaintenanceCreateDialog`, grava
+ *   `created_by_user_id`).
+ * - Relatório PDF (`exportMaintenanceReportToPdf`, `utils/maintenance-report-pdf.ts`)
+ *   mostra só o e-mail de quem gerou (`useAuth().user?.email`) em vez de
+ *   "nome (email)" do original — mesma limitação de nome de usuário citada
+ *   acima.
  * - Coluna "Responsável" mostra o e-mail do usuário logado quando ele é o
  *   responsável da linha, "—" caso contrário — mesma limitação já
  *   documentada em `InspectionsListPage` (`tenant_users` não expõe nome/
@@ -72,6 +82,9 @@ export function MaintenanceListPage() {
   const [projectFilter, setProjectFilter] = useState('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<MaintenanceRequest | null>(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [exportMode, setExportMode] = useState<MaintenanceReportMode>('resumo');
+  const [isExporting, setIsExporting] = useState(false);
 
   const softDelete = useSoftDeleteMaintenanceRequest();
 
@@ -95,6 +108,30 @@ export function MaintenanceListPage() {
   function responsibleLabel(responsibleUserId: string | null): string {
     if (!responsibleUserId) return '—';
     return responsibleUserId === user?.id ? (user?.email ?? '—') : '—';
+  }
+
+  /**
+   * Badge "Cliente"/"Operador" da coluna "Criado Por" — mesma checagem do
+   * original (`clients.find(c => c.user_id === request.created_by_user_id)`),
+   * sem o nome do operador embaixo (ver comentário de topo do arquivo).
+   */
+  function createdByBadge(request: MaintenanceRequest) {
+    const createdByClient = allClients.find((c) => c.user_id === request.created_by_user_id);
+    if (createdByClient) {
+      return (
+        <Badge variant="outline" className="border-pink-200 bg-pink-50 text-pink-700">
+          Cliente
+        </Badge>
+      );
+    }
+    if (request.created_by_user_id) {
+      return (
+        <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
+          Operador
+        </Badge>
+      );
+    }
+    return <span className="text-muted-foreground">—</span>;
   }
 
   const filteredRequests = allRequests.filter((request) => {
@@ -132,6 +169,41 @@ export function MaintenanceListPage() {
     });
   }
 
+  async function handleExportReport() {
+    setIsExporting(true);
+    try {
+      await exportMaintenanceReportToPdf({
+        requests: filteredRequests,
+        mode: exportMode,
+        filters: {
+          status: statusFilter,
+          category: categoryFilter,
+          priority: priorityFilter,
+          project: projectFilter,
+          projectName: projectFilter !== 'all' ? projectName(projectFilter) : null,
+          search,
+        },
+        generatedByEmail: user?.email ?? '—',
+        generatedAt: new Date().toISOString(),
+        getters: {
+          getClientName: clientName,
+          getProjectName: projectName,
+          getUnitSKU: unitSku,
+          getResponsibleName: responsibleLabel,
+          clients: allClients,
+        },
+      });
+
+      toast.success('Relatório PDF exportado com sucesso!');
+      setShowExportDialog(false);
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast.error('Erro ao gerar relatório PDF');
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   if (isLoading) return <LoadingInline />;
   if (isError) return <ErrorState onRetry={() => refetch()} />;
 
@@ -141,31 +213,32 @@ export function MaintenanceListPage() {
         title="Gestão de Manutenção"
         subtitle="Solicitações de manutenção dos clientes"
         actions={
-          <Button variant="brand" onClick={() => setShowCreateDialog(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Solicitação
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowExportDialog(true)} disabled={filteredRequests.length === 0}>
+              <FileDown className="mr-2 h-4 w-4" />
+              Gerar Relatório
+            </Button>
+            <Button variant="brand" onClick={() => setShowCreateDialog(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Solicitação
+            </Button>
+          </div>
         }
       />
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-        {[
-          { label: 'Abertos', value: openCount, textClass: 'text-blue-600' },
-          { label: 'Agendados', value: scheduledCount, textClass: 'text-purple-600' },
-          { label: 'Em Andamento', value: inProgressCount, textClass: 'text-amber-600' },
-          { label: 'Aguardando Cliente', value: waitingClientCount, textClass: 'text-orange-600' },
-          { label: 'Resolvidos (30d)', value: resolvedCount, textClass: 'text-green-600' },
-          { label: 'Cancelados (30d)', value: cancelledCount, textClass: 'text-slate-600' },
-        ].map((stat) => (
-          <Card key={stat.label}>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className={`text-2xl font-bold ${stat.textClass}`}>{stat.value}</div>
-                <div className="mt-1 text-xs text-muted-foreground">{stat.label}</div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        <StatsCard title="Abertos" value={openCount} icon={Wrench} iconBg="bg-blue-100" iconColor="text-blue-600" />
+        <StatsCard title="Agendados" value={scheduledCount} icon={Wrench} iconBg="bg-purple-100" iconColor="text-purple-600" />
+        <StatsCard title="Em Andamento" value={inProgressCount} icon={Wrench} iconBg="bg-amber-100" iconColor="text-amber-600" />
+        <StatsCard
+          title="Aguardando Cliente"
+          value={waitingClientCount}
+          icon={Wrench}
+          iconBg="bg-orange-100"
+          iconColor="text-orange-600"
+        />
+        <StatsCard title="Resolvidos (30d)" value={resolvedCount} icon={Wrench} iconBg="bg-green-100" iconColor="text-green-600" />
+        <StatsCard title="Cancelados (30d)" value={cancelledCount} icon={Wrench} iconBg="bg-slate-100" iconColor="text-slate-600" />
       </div>
 
       <Card className="p-4">
@@ -258,6 +331,7 @@ export function MaintenanceListPage() {
                   <TableHead>Categoria</TableHead>
                   <TableHead>Prioridade</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Criado Por</TableHead>
                   <TableHead>Agendamento</TableHead>
                   <TableHead>Responsável</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -278,6 +352,7 @@ export function MaintenanceListPage() {
                     <TableCell>
                       <MaintenanceStatusBadge status={request.status} />
                     </TableCell>
+                    <TableCell>{createdByBadge(request)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {request.scheduled_date ? new Date(request.scheduled_date).toLocaleDateString('pt-BR') : '—'}
                     </TableCell>
@@ -285,8 +360,9 @@ export function MaintenanceListPage() {
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Link to={`${pageUrl('AdminMaintenance')}/${request.id}`}>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver">
-                            <Eye className="h-4 w-4" />
+                          <Button variant="ghost" size="sm">
+                            <Eye className="mr-1 h-4 w-4" />
+                            Ver
                           </Button>
                         </Link>
                         {tenantRole === 'admin' && (
@@ -319,10 +395,73 @@ export function MaintenanceListPage() {
         deals={deals ?? []}
       />
 
+      <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Exportar Relatório de Manutenção</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">Selecione o tipo de relatório que deseja gerar:</p>
+
+            <div className="space-y-3">
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50">
+                <input
+                  type="radio"
+                  name="exportMode"
+                  value="resumo"
+                  checked={exportMode === 'resumo'}
+                  onChange={() => setExportMode('resumo')}
+                  className="mt-1"
+                />
+                <div>
+                  <p className="font-medium text-foreground">PDF Resumo</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Tabela com informações principais das solicitações</p>
+                </div>
+              </label>
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50">
+                <input
+                  type="radio"
+                  name="exportMode"
+                  value="completo"
+                  checked={exportMode === 'completo'}
+                  onChange={() => setExportMode('completo')}
+                  className="mt-1"
+                />
+                <div>
+                  <p className="font-medium text-foreground">PDF Completo</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Tabela + detalhes completos de cada solicitação + fotos/anexos</p>
+                </div>
+              </label>
+            </div>
+
+            {filteredRequests.length > 50 && exportMode === 'completo' && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <p className="text-xs text-amber-800">
+                  ⚠️ Relatório grande ({filteredRequests.length} solicitações). Pode levar alguns segundos para gerar.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setShowExportDialog(false)} disabled={isExporting}>
+              Cancelar
+            </Button>
+            <Button onClick={handleExportReport} variant="brand" disabled={isExporting}>
+              {isExporting ? 'Gerando...' : 'Gerar PDF'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={Boolean(deleteConfirm)} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Solicitação?</AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Excluir Solicitação?
+            </AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
               <span className="block">Tem certeza que deseja excluir esta solicitação?</span>
               <span className="block font-medium text-foreground">{deleteConfirm?.title}</span>
