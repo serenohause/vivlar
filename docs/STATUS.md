@@ -46,6 +46,12 @@ região `sa-east-1`, ref `hppeqpmxupfghymkulne`)
   carteiras/parcelas duplicadas, campos inconsistentes e atraso não
   marcado, via RPC transacional admin-only (`run_finance_checkup`,
   migrations 0067-0068)
+- 🚧 Automação de Distrato + Checkup Distrato (dentro de
+  Unidades/Módulo 3) — distrato manual/automático de unidade, reset
+  reativo de fluxo MCMV, reconciliação em lote admin-only (RPCs
+  `apply_unit_distrato`/`check_and_reset_unit_mcmv_flow`/
+  `run_distrato_checkup`, migrations 0069-0071) — construído, falta
+  auditoria de segurança e deploy
 
 ## Como o projeto é construído (processo, pra sessões novas entenderem)
 

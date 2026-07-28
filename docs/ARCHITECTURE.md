@@ -596,14 +596,10 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   nunca são importadas por nenhuma tela. Não portadas — replicar
   código morto não é replicar o original de fato.
 - **2 pontos de notificação de "distrato automático" (`UnitDetail.jsx`)
-  não portados**: dependem de uma automação inteira — reverter status
-  da unidade e criar transição automaticamente ao aprovar um "Termo de
-  Distrato" — que nunca foi construída em nenhum módulo (Catálogo,
-  Documentos ou CRM). O tipo de documento `termo_distrato` existe no
-  schema, mas nenhuma tela reage a ele. Construir a automação de
-  distrato em si é trabalho de um módulo futuro, não deste; quando
-  existir, os 2 pontos de notificação ficam triviais de adicionar
-  (mesmo padrão já usado nos outros 10 pontos conectados).
+  não portados neste módulo** — dependiam de uma automação que ainda
+  não existia. **Fechado**: ver entrada "Automação de Distrato +
+  Checkup Distrato" abaixo — os 2 pontos foram conectados quando essa
+  automação foi construída.
 - **Investimentos/Notificação (`INVESTIMENTO`)**: `type` existe no
   enum de referência (mural), mas nenhuma chamada real foi encontrada
   no original conectando aportes/retornos a notificação — a função
@@ -651,6 +647,56 @@ ferramenta interna de saneamento de dado, `FinanceCheckup.jsx` +
   manualmente pelo admin, sob demanda — mesmo comportamento do
   original (que também não tinha nenhuma automação, era sempre
   clique manual).
+
+**Automação de Distrato + Checkup Distrato** (fora da numeração de
+módulos do domínio — fecha o débito do Módulo 15 acima; porta
+`UnitDetail.jsx` linhas ~200-270/~375-445,
+`components/unit/unitStatusHelpers.jsx` e `pages/DistratoCheckup.jsx`
+do original)
+- **2 RPCs SECURITY DEFINER** (`apply_unit_distrato`,
+  `check_and_reset_unit_mcmv_flow`, `0070_unit_distrato_rpcs.sql`)
+  substituem as escritas sequenciais sem transação do original (deal →
+  distratado, unit → disponível/distrato, status_transitions,
+  notification — 4 passos no client, sem rollback em caso de falha no
+  meio). `apply_unit_distrato` serve tanto o botão manual "Registrar
+  Distrato" quanto o gatilho automático ao aprovar `TERMO_DISTRATO`,
+  diferenciados por um parâmetro novo `p_source` (não pedido
+  explicitamente, necessário pra replicar os 2 textos de notificação
+  diferentes do original a partir de uma função só).
+- **Sem diálogo de confirmação no botão manual, fiel ao original**: nem
+  `handleDistrato` (original) nem a UI aqui pedem confirmação antes de
+  aplicar — ação imediata ao clicar, mesmo comportamento (arriscado,
+  mas fidelidade deliberada). A tela de Checkup Distrato, por ser uma
+  ação em lote sobre várias unidades de uma vez, ganhou um
+  `AlertDialog` de confirmação — não existe equivalente no original
+  pra esse botão específico, mas o risco de uma ação em massa sem
+  confirmação é maior que o de uma ação unidade-a-unidade.
+- **Achado real no original, corrigido (não replicado)**: a tela
+  `DistratoCheckup.jsx` mostra um card "Inconsistências Detectadas"
+  (unidades com Termo de Distrato aprovado mas status ainda
+  vendida/reservada) e descreve a ação como se corrigisse isso, mas o
+  `runReconciliation` de verdade só fazia reset de fluxo MCMV — o array
+  `reconciled` nunca recebia `.push` em lugar nenhum, sempre ficava em
+  0. Ou seja, o botão do original nunca corrigia o problema que ele
+  mesmo mostrava. Decisão tomada com o usuário (não é invenção livre de
+  funcionalidade nova): a RPC nova (`run_distrato_checkup`,
+  `0071_distrato_checkup_rpc.sql`) corrige de verdade as duas coisas —
+  reconciliação real (chama `apply_unit_distrato` com
+  `p_source='checkup_reconciliation'`) e reset de MCMV em lote (chama
+  `check_and_reset_unit_mcmv_flow`) — com relatório por unidade
+  (sucesso/erro) e erro isolado por unidade (uma falha não aborta o
+  checkup inteiro).
+- `check_and_reset_unit_mcmv_flow` é chamada de forma reativa
+  (`useEffect` ao abrir `UnitDetailPage`), não é trigger de banco —
+  mesmo padrão do original (`shouldResetUnitMcmvFlow` chamado no mount
+  da tela de detalhe).
+- QA manual do fluxo completo (aprovar documento → distrato automático
+  → nova negociação → reset de MCMV) não foi exercitada num navegador
+  real nesta sessão (sem ambiente de browser disponível) — só testes
+  SQL de isolamento (`supabase/tests/0070_unit_distrato_rpcs.sql`,
+  `supabase/tests/0071_distrato_checkup_rpc.sql`), ambos rodados contra
+  o banco remoto real. Recomenda-se uma passada manual antes de
+  anunciar a feature pro time.
 
 **Comparador de Unidades (dentro do Catálogo/Módulo 3)**
 - Sem débito técnico novo: tela só de leitura, reaproveita hooks já
@@ -994,4 +1040,8 @@ auditoria do módulo 8, mas não específico dele)
   carteiras/parcelas duplicadas, campos inconsistentes e atraso não
   marcado, via RPC transacional admin-only) implementado, auditado (sem
   achado crítico/alto) e em produção — https://vivlar.vercel.app
+- [ ] Automação de Distrato + Checkup Distrato (dentro de
+  Unidades/Módulo 3: distrato manual/automático, reset reativo de
+  fluxo MCMV, reconciliação em lote admin-only corrigindo um bug real
+  do original) implementado — auditoria e deploy pendentes
 - [ ] Auditoria de arquitetura geral rodada
