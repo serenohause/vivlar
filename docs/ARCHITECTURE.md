@@ -334,14 +334,22 @@ esquecido. Ao construir o módulo que resolve um item, risque-o daqui.
   `Dashboard.jsx` original desestrutura `maintenance` de
   `useDashboardData` mas nunca renderiza nada com isso — mesmo padrão
   de código morto já visto em Comissões/Vistorias.
-- **Achado transversal, não específico deste módulo**: o badge de
-  contagem da sidebar (`useNavigationBadges`,
-  `src/features/dashboard/hooks.ts`) nunca foi implementado de verdade
-  em nenhum módulo anterior — `crm`/`finance`/`inspections`/`units`
-  continuam sempre zerados, apesar dos módulos que os alimentariam já
-  estarem em produção. Corrigido só o badge `maintenance` nesta leva
-  (contagem real de chamados não resolvidos/cancelados); os demais
-  seguem como débito técnico pendente, fora do escopo desta rodada.
+- **Achado transversal, não específico deste módulo — fechado numa
+  leva posterior**: o badge de contagem da sidebar
+  (`useNavigationBadges`, `src/features/dashboard/hooks.ts`) só tinha
+  `maintenance` real nesta rodada; `crm`/`finance`/`inspections`
+  continuavam zerados. Fechados depois (pedido do usuário, "verifique
+  se já está implementado"): `crm` (negócios abertos parados há mais
+  de 7 dias, mesmo critério do original), `finance` (parcelas
+  `em_atraso`, lendo o status persistido em vez de recalcular no
+  client como o original fazia), `inspections` (vistorias
+  `rascunho`/`em_vistoria`) — cada um sua própria query
+  `count: 'exact', head: true`, mesmo padrão leve já usado por
+  `maintenance` (mais barato que carregar a lista inteira toda vez que
+  a sidebar renderiza, em toda página do app). `units` continua
+  zerado, mas fiel ao original (que também nunca calculava esse
+  badge, apesar de referenciá-lo no item de menu — confirmado lendo
+  `NavigationBadges.jsx` original linha a linha).
 - **Fechado nesta leva**: seção "Manutenções" no detalhe da Unidade
   (Catálogo, módulo 3), mesmo padrão da seção "Vistorias" — lista com
   link pro detalhe completo e botão de novo chamado (desabilitado se a
