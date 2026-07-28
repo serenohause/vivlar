@@ -947,6 +947,17 @@ auditoria do módulo 8, mas não específico dele)
 - Alto (dependência, reincidente desde o módulo 11): mesmo advisory de
   `react-router-dom`, mesma avaliação, não piorou. Continua acompanhado.
 
+**Checkup Financeiro** (auditoria de 2026-07-27)
+- Nenhum achado crítico/alto no módulo. Confirmado (teste de isolamento
+  rodado de novo contra produção): autorização real vive dentro da RPC
+  (`security definer`, barra não-admin mesmo via chamada direta, sem
+  passar pela tela), escopo por tenant em toda leitura/escrita,
+  atomicidade real (transação única), e o merge de carteiras não perde
+  parcela (plano de merge materializado uma única vez, reaproveitado
+  no relatório e na correção, sem divergência possível).
+- Alto (dependência, reincidente, não deste módulo): mesmo advisory de
+  `react-router-dom`. Continua acompanhado.
+
 ## Desvios do padrão do CLAUDE.md
 
 - Etapa 2 (`ui-prototyper` + `prototypes/`) substituída por
