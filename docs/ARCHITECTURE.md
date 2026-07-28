@@ -992,6 +992,6 @@ auditoria do módulo 8, mas não específico dele)
   auditado (sem achado) e em produção — https://vivlar.vercel.app
 - [x] Checkup Financeiro (dentro do Financeiro/Módulo 5: saneamento de
   carteiras/parcelas duplicadas, campos inconsistentes e atraso não
-  marcado, via RPC transacional admin-only) implementado, pendente de
-  auditoria e deploy
+  marcado, via RPC transacional admin-only) implementado, auditado (sem
+  achado crítico/alto) e em produção — https://vivlar.vercel.app
 - [ ] Auditoria de arquitetura geral rodada

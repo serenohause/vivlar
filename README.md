@@ -27,12 +27,30 @@ Outros scripts: `npm run build`, `npm run typecheck`, `npm run lint`, `npm run p
 
 Construído por módulos, cada um deployado separadamente. Status atual e
 lista completa: **`docs/STATUS.md`** (é o que fica atualizado — não
-duplicar a lista aqui). Entrega em produção mais recente: Comparador de
-Unidades (dentro do Catálogo/Módulo 3 — ranking de unidades por score
-composto: progresso administrativo 40% + documentos 30% + saúde
-financeira 30%; deploy de 2026-07-28). Só leitura, sem migration nova —
-`supabase db push` confirmou local (`0001`-`0066`) e remoto já
-sincronizados antes do deploy. Auditoria de segurança deste módulo sem
+duplicar a lista aqui). Entrega em produção mais recente: Checkup
+Financeiro (dentro do Financeiro/Módulo 5 — saneamento transacional de
+carteiras/parcelas duplicadas, campos inconsistentes e atraso não
+marcado, via RPC `run_finance_checkup`, admin-only; deploy de
+2026-07-28). Migrations `0067`-`0068` confirmadas sincronizadas entre
+local e remoto (`npx supabase migration list --linked`) antes do
+deploy. RLS confirmada habilitada (`relrowsecurity = true`) nas 38
+tabelas com `tenant_id` do projeto remoto. Autorização real da RPC vive
+dentro da função (`security definer`, checagem explícita de
+`tenant_role = 'admin'`), não no `GRANT`: `anon` sem `EXECUTE`,
+`authenticated` com `EXECUTE` (confirmado via
+`information_schema.role_routine_grants` contra produção). Auditoria de
+segurança deste módulo sem achado crítico/alto. Smoke test pós-deploy:
+`supabase/tests/0068_finance_checkup_rpc.sql` reexecutado contra
+produção dentro de uma transação com `rollback` — as 8 checagens de
+isolamento entre tenants (dry run, correção real, bloqueio de
+`tenant_role` não-admin, bloqueio de usuário sem `tenant_id` no claim,
+grants de `anon`/`authenticated`) passaram, sem deixar dado sintético
+no banco.
+
+Entrega anterior: Comparador de Unidades (dentro do Catálogo/Módulo 3 —
+ranking de unidades por score composto: progresso administrativo 40% +
+documentos 30% + saúde financeira 30%; deploy de 2026-07-28). Só
+leitura, sem migration nova. Auditoria de segurança deste módulo sem
 achado crítico/alto/médio/baixo. Smoke test pós-deploy: `units` segue
 recusando leitura anônima em produção (`401 permission denied`,
 sem `GRANT` pra `anon`), confirmando que o isolamento por RLS/tenant
